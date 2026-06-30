@@ -1,0 +1,27 @@
+{
+  "_case": "Regenerated assistant turn. n1 has two children (a2 abandoned, b2 active). current_node=b3. Expected active branch: n1, b2, b3 — a2 must NOT appear.",
+  "title": "Branched / regenerated",
+  "conversation_id": "00000000-0000-4000-8000-000000000002",
+  "current_node": "b3",
+  "mapping": {
+    "root": { "id": "root", "parent": null, "children": ["n1"], "message": null },
+    "n1": { "id": "n1", "parent": "root", "children": ["a2", "b2"], "message": {
+      "id": "n1", "author": { "role": "user" }, "create_time": 1,
+      "content": { "content_type": "text", "parts": ["Write a haiku."] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } },
+    "a2": { "id": "a2", "parent": "n1", "children": [], "message": {
+      "id": "a2", "author": { "role": "assistant" }, "create_time": 2,
+      "content": { "content_type": "text", "parts": ["ABANDONED first attempt — must be excluded."] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } },
+    "b2": { "id": "b2", "parent": "n1", "children": ["b3"], "message": {
+      "id": "b2", "author": { "role": "assistant" }, "create_time": 3,
+      "content": { "content_type": "text", "parts": ["Active regenerated answer."] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } },
+    "b3": { "id": "b3", "parent": "b2", "children": [], "message": {
+      "id": "b3", "author": { "role": "user" }, "create_time": 4,
+      "content": { "content_type": "text", "parts": ["Perfect."] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } }
+  }
+}

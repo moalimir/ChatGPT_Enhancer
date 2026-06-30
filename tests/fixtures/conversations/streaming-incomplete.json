@@ -1,0 +1,18 @@
+{
+  "_case": "Trailing assistant turn still generating: status='in_progress', end_turn=false. Normalizer should mark it incomplete (or exclude it) and the service should revalidate after the generation settles.",
+  "title": "Streaming / incomplete last turn",
+  "conversation_id": "00000000-0000-4000-8000-000000000009",
+  "current_node": "a1",
+  "mapping": {
+    "root": { "id": "root", "parent": null, "children": ["u1"], "message": null },
+    "u1": { "id": "u1", "parent": "root", "children": ["a1"], "message": {
+      "id": "u1", "author": { "role": "user" }, "create_time": 1,
+      "content": { "content_type": "text", "parts": ["Write a long essay."] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } },
+    "a1": { "id": "a1", "parent": "u1", "children": [], "message": {
+      "id": "a1", "author": { "role": "assistant" }, "create_time": 2,
+      "content": { "content_type": "text", "parts": ["The essay begins here and is still being"] },
+      "recipient": "all", "channel": "final", "status": "in_progress", "end_turn": false,
+      "metadata": { "model_slug": "gpt-5-1" } } }
+  }
+}

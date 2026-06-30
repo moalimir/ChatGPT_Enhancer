@@ -1,0 +1,13 @@
+{
+  "_case": "current_node=n2; n2.parent points to 'missing' which is absent from mapping. activeBranch() must throw 'conversation-broken-parent' (→ typed DOM fallback).",
+  "title": "Broken parent",
+  "conversation_id": "00000000-0000-4000-8000-000000000003",
+  "current_node": "n2",
+  "mapping": {
+    "n2": { "id": "n2", "parent": "missing", "children": [], "message": {
+      "id": "n2", "author": { "role": "assistant" }, "create_time": 2,
+      "content": { "content_type": "text", "parts": ["Reply whose ancestry is broken."] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } }
+  }
+}

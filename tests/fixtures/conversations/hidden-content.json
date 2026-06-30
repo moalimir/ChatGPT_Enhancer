@@ -1,0 +1,44 @@
+{
+  "_case": "Visibility filter. Visible active-branch turns: u1 (user), a1 (assistant, channel=final), u2 (user). Everything else must be excluded: system + is_visually_hidden, user_editable_context, thoughts/analysis, commentary + web.search recipient, and bio recipient.",
+  "title": "Hidden content",
+  "conversation_id": "00000000-0000-4000-8000-000000000005",
+  "current_node": "u2",
+  "mapping": {
+    "root": { "id": "root", "parent": null, "children": ["sys"], "message": null },
+    "sys": { "id": "sys", "parent": "root", "children": ["ctx"], "message": {
+      "id": "sys", "author": { "role": "system" }, "create_time": 1,
+      "content": { "content_type": "text", "parts": ["You are a helpful assistant."] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true,
+      "metadata": { "is_visually_hidden_from_conversation": true } } },
+    "ctx": { "id": "ctx", "parent": "sys", "children": ["u1"], "message": {
+      "id": "ctx", "author": { "role": "user" }, "create_time": 2,
+      "content": { "content_type": "user_editable_context", "parts": ["Custom instructions text."] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true,
+      "metadata": { "is_visually_hidden_from_conversation": true, "is_user_system_message": true } } },
+    "u1": { "id": "u1", "parent": "ctx", "children": ["think"], "message": {
+      "id": "u1", "author": { "role": "user" }, "create_time": 3,
+      "content": { "content_type": "text", "parts": ["Search the web and summarize."] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } },
+    "think": { "id": "think", "parent": "u1", "children": ["toolcall"], "message": {
+      "id": "think", "author": { "role": "assistant" }, "create_time": 4,
+      "content": { "content_type": "thoughts", "parts": ["internal reasoning..."] },
+      "recipient": "all", "channel": "analysis", "status": "finished_successfully", "end_turn": false, "metadata": {} } },
+    "toolcall": { "id": "toolcall", "parent": "think", "children": ["a1"], "message": {
+      "id": "toolcall", "author": { "role": "assistant" }, "create_time": 5,
+      "content": { "content_type": "text", "parts": ["search(\"query\")"] },
+      "recipient": "web.search", "channel": "commentary", "status": "finished_successfully", "end_turn": false, "metadata": {} } },
+    "a1": { "id": "a1", "parent": "toolcall", "children": ["bio"], "message": {
+      "id": "a1", "author": { "role": "assistant" }, "create_time": 6,
+      "content": { "content_type": "text", "parts": ["Here is the visible answer."] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } },
+    "bio": { "id": "bio", "parent": "a1", "children": ["u2"], "message": {
+      "id": "bio", "author": { "role": "assistant" }, "create_time": 7,
+      "content": { "content_type": "text", "parts": ["User likes concise answers."] },
+      "recipient": "bio", "channel": null, "status": "finished_successfully", "end_turn": false, "metadata": {} } },
+    "u2": { "id": "u2", "parent": "bio", "children": [], "message": {
+      "id": "u2", "author": { "role": "user" }, "create_time": 8,
+      "content": { "content_type": "text", "parts": ["Got it."] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } }
+  }
+}
