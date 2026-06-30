@@ -200,8 +200,9 @@ feature. ChatGPT also exposes a font/contrast preference UI of its own.
 
 ## 4. Private REST API
 
-Same-origin from a content script. Full detail (data model, edge cases, citations) is in
-[chatgpt-internal-api.md](./chatgpt-internal-api.md); summarized here for completeness.
+Same-origin from a content script. **This section is the canonical data-model reference**
+for the project — the rollout plan in [chatgpt-internal-api.md](./chatgpt-internal-api.md)
+links here rather than restating it, so the two files can't drift.
 
 ### 4.1 Auth
 - `GET /api/auth/session` → `{ accessToken, user, expires }` (read same-origin).
@@ -239,16 +240,66 @@ edit/regenerate branch; ignore other branches).
 - Voice mode: audio/video asset-pointer parts.
 
 ### 4.5 Visibility & citations
-- **Hide signal:** `metadata.is_visually_hidden_from_conversation === true` (authoritative).
-  Combine with role/recipient/channel rules (`recipient==='all'`, `channel ∈ {null,final}`).
-- **Citations:** web answers embed spans delimited by PUA chars `U+E200`(start)/`U+E202`(sep)/
-  `U+E201`(end); `metadata.content_references[]` gives exact `start_idx`/`end_idx` offsets
-  into the part string (`slice(start,end) === matched_text`). Strip/replace the whole span,
-  right-to-left, to get clean text.
+- **Hide signal:** `metadata.is_visually_hidden_from_conversation === true` (authoritative;
+  observed on system, hidden-tool, and `user_editable_context` messages). Combine with
+  role/recipient/channel rules (`recipient==='all'`, `channel ∈ {null,final}`) — redundant
+  on purpose, fail closed.
+- **Citations (verified mechanism):** web/cited answers embed spans delimited by private-use
+  sentinels `U+E200`(start) / `U+E202`(separator) / `U+E201`(end). `metadata.content_references[]`
+  gives exact code-unit offsets into the part string — verified `part.slice(start_idx, end_idx)
+  === matched_text`. The span **wraps readable anchor text**, so replace the *whole* span;
+  do **not** regex-strip only the PUA chars or the anchor text is orphaned.
+
+```js
+function stripCitations(part, contentReferences = []) {
+  const spans = contentReferences
+    .filter(r => Number.isInteger(r.start_idx) && Number.isInteger(r.end_idx))
+    .sort((a, b) => b.start_idx - a.start_idx);     // right-to-left keeps indices valid
+  let out = part;
+  for (const r of spans) {
+    const replacement = renderReference(r);          // web → ` [${title}](${url})`; alt_text/other → ''
+    out = out.slice(0, r.start_idx) + replacement + out.slice(r.end_idx);
+  }
+  return out.replace(/[\uE200-\uE20F]/g, '');        // safety net for stray sentinels
+}
+```
+`ref.type` seen: `alt_text` (drop), web types (`url`/`title`/`items` → Markdown link).
 
 ### 4.6 DOM ↔ API bridge
 `data-message-id` (DOM) === `mapping` node id (API), verified. Build complete data from the
 API; navigate the live (virtualized) page via `[data-message-id="…"]`.
+
+### 4.7 Edge cases & long-chat behavior (verified)
+
+| Behavior | Detail / implication |
+|---|---|
+| **No pagination** | `/conversation/<id>` returns the whole `mapping` in one Brotli payload; the app's own calls carry no cursor/offset. A 1000-turn chat is one fetch — completeness is not the bottleneck; client-side parse/render is. |
+| **Caching** | `cf-cache-status: DYNAMIC` — always fresh. |
+| **Error shape** | Inaccessible/nonexistent → `404 { detail: { code: "conversation_inaccessible" } }`. Branch fallback on status/code, don't throw. |
+| **List cap** | `/conversations` honors `limit ≤ 100` (200/1000 → 0 rows). Page with `offset` for "export all". |
+| **URL variants** | One regex covers plain/custom-GPT/project chats; `/share/<id>` is a **separate** anonymous source — don't assume the authed endpoint applies. |
+| **Canvas** | Document body is at `/conversation/<id>/textdocs`, not in `mapping` parts. |
+| **Mid-generation** | `/stream_status` `COMPLETE`, or per-message `status`/`end_turn`, detect a partial trailing turn. |
+| **Branches ≠ length** | Active-branch depth can be far shorter than `Object.keys(mapping).length` (regenerations inflate node count). Always walk from `current_node`. |
+
+```js
+// Conversation route (plain / custom-GPT / project); /share/<id> intentionally excluded.
+const CONVERSATION_ROUTE_RE = /\/(?:c|g\/[^/]+\/c|g\/[^/]+\/project\/[^/]+\/c)\/([0-9a-f-]{36})(?:\/|$)/i;
+```
+
+### 4.8 Still unverified (re-verify before depending on these)
+
+Could not be confirmed on the verification account (no long/Canvas/shared chats); these are
+the open items the rollout's de-risk phase must settle.
+
+| Item | Why unverified | Risk if assumed |
+|---|---|---|
+| **Scroll-to a virtualized message** (long chat) | Largest test chat was 38 turns — nothing unmounted | Riskiest claim; gate TOC *navigation* behind a real long-chat test |
+| **Packaged content-script fetch** (isolated world) | All probes ran in DevTools **main** world | Cookies are shared, but confirm `Authorization`+`credentials` from the built extension |
+| **`/textdocs` item shape** (Canvas) | No Canvas chat to sample | Field names assumed; capture one before merging into export |
+| **`/share/<id>` source** | No shared link to test | Distinct adapter; don't assume `/conversation/<id>` applies |
+| **Token refresh mid-op** | Token didn't expire in testing | A long export may outlive it; re-fetch on `401` |
+| **Rate limiting** | ~75 looped fetches succeeded | No hard limit seen; single-conversation use only, no batch-crawl |
 
 ---
 

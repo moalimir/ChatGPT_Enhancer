@@ -6,6 +6,12 @@
 > against a logged-in `chatgpt.com` session on 2026-06-30. They are implementation
 > details, not a supported OpenAI API contract, and must be re-verified before release.
 >
+> **Canonical data model:** the conversation schema, content-type catalog, citation
+> mechanism, edge cases, and the still-unverified list live in
+> [chatgpt-internals-reference.md §4](./chatgpt-internals-reference.md#4-private-rest-api).
+> This document is the **rollout plan**; it links there instead of restating, so the two
+> can't drift.
+>
 > **Goal:** Make conversation-dependent features complete and responsive on long chats
 > without weakening the extension's client-side privacy model. Use structured ChatGPT
 > conversation data where it is materially better, retain DOM adapters as fallback, and
@@ -20,12 +26,16 @@ Adopt a hybrid data layer, with these boundaries:
 1. **API-first conversation snapshots** for complete transcript data.
 2. **DOM fallback** when the private endpoint is unavailable, invalid, or unsupported.
 3. **DOM-only page enhancements** for features that modify the rendered ChatGPT UI.
-4. **Canonical export rendering** so API data can eventually power DOCX, PDF, and PNG as
-   well as JSON, Markdown, and CSV.
-5. **Fail-closed visibility filtering** so hidden system, memory, reasoning, and tool
+4. **Fail-closed visibility filtering** so hidden system, memory, reasoning, and tool
    content cannot leak into an export.
-6. **No bulk access or background polling.** Fetch only the conversation currently open,
+5. **No bulk access or background polling.** Fetch only the conversation currently open,
    after a user action or a bounded TOC refresh.
+
+Canonical export rendering (driving DOCX/PDF/PNG from the API snapshot instead of the DOM)
+is an **optional, deferred sub-project** — explicitly **not** part of the core fix. It is
+the largest and riskiest piece (it amounts to reimplementing ChatGPT's Markdown/KaTeX
+renderer) and the long-chat problem is fully solved without it. See §10.3 and the
+"Deferred" note in §16.
 
 This is not a migration to the public OpenAI Conversations API. The public API does not
 provide a documented route to a user's existing ChatGPT website history. The endpoint
@@ -55,9 +65,9 @@ described here is ChatGPT's private frontend data endpoint.
 | Feature | Current behavior | Recommended ownership |
 |---|---|---|
 | **Export: JSON / Markdown / CSV** | Scrapes and serializes mounted DOM | **API-first snapshot**, DOM fallback |
-| **Export: DOCX** | Converts cloned HTML and rendered KaTeX | Phase 1: DOM; Phase 2: canonical DOM rendered from API snapshot |
-| **Export: PDF** | Prints an offscreen export stage | Phase 1: DOM; Phase 2: canonical DOM rendered from API snapshot |
-| **Export: PNG** | Rasterizes an offscreen export stage | Phase 1: DOM; Phase 2: canonical DOM from API; size limits remain |
+| **Export: DOCX** | Converts cloned HTML and rendered KaTeX | **DOM now**; canonical-from-API is a deferred sub-project (§10.3) |
+| **Export: PDF** | Prints an offscreen export stage | **DOM now**; canonical-from-API deferred (§10.3) |
+| **Export: PNG** | Rasterizes an offscreen export stage | **DOM now**; canonical-from-API deferred; size limits remain regardless |
 | **Table of Contents: entries** | Scans mounted assistant turns | **API-first snapshot**, DOM fallback |
 | **Table of Contents: live-page navigation** | Scrolls to mounted DOM nodes | **DOM bridge** plus bounded targeted navigation; see §9 |
 | **Quick export panel** | UI entry point for export | Keep DOM UI; delegate data acquisition to the shared service |
@@ -95,6 +105,11 @@ still need a narrower DOM adapter, strict selectors, and incremental mutation ha
 ---
 
 ## 4. Private ChatGPT data source
+
+> The full data model, content-type catalog, citation algorithm, edge cases, and
+> still-unverified items are documented once in
+> [chatgpt-internals-reference.md §4](./chatgpt-internals-reference.md#4-private-rest-api).
+> This section keeps only what the rollout decisions depend on.
 
 Observed authenticated flow:
 
@@ -299,7 +314,7 @@ Default transcript allowlist (all conditions must pass; fail closed):
 > alone has gaps (the flag isn't set on `analysis`-channel reasoning; channel rules don't
 > catch every context message). Applying all of them is the fail-closed posture.
 
-Verified content types and their handling (see Appendix C for the full observed catalog):
+Verified content types and their handling (full catalog + citation handling: [reference §4.4–4.5](./chatgpt-internals-reference.md#44-content-types--part-shapes-verified-catalog)):
 
 | `content_type` | Where the text lives | Initial handling |
 |---|---|---|
@@ -399,32 +414,36 @@ JSON / Markdown / CSV / DOCX / PDF / PNG
 - If API acquisition fails, use the strict DOM source and surface a non-blocking warning
   when completeness is `rendered-only`.
 
-### 10.3 Canonical export DOM — second rollout
+### 10.3 Canonical export DOM — DEFERRED sub-project (not in the core fix)
 
-The API can eventually improve visual exports too. PDF and PNG need rendered content,
-but that content does not have to come from ChatGPT's live message DOM.
+> **Scope warning.** This is the single largest and riskiest item in the document and is
+> **explicitly out of the initial rollout.** Treat it as a separate project to be scoped on
+> its own, *after* the core (JSON/MD/CSV + TOC) has shipped and proven out. The long-chat
+> problem is fully solved without it. Until then, DOCX/PDF/PNG stay on the existing DOM
+> capture path.
 
-Add a controlled renderer:
+The idea: the API could eventually drive visual exports too, since PDF/PNG need rendered
+content but that content need not come from ChatGPT's live message DOM:
 
 ```text
 ConversationSnapshot → Markdown/block parser → sanitized canonical DOM
                      → image resolver / KaTeX renderer → existing generators
 ```
 
-This can provide complete DOCX/PDF/PNG exports without force-scrolling. It requires:
+Why it's a sub-project, not a phase — it effectively reimplements ChatGPT's renderer:
 
-- A deterministic Markdown/block renderer.
+- A deterministic Markdown/block renderer (lists, tables, blockquotes, nesting).
 - KaTeX rendering from source Markdown.
-- Code-block and table styling.
+- Code-block and table styling matching the themes.
 - Image resolution with size/type limits.
 - Citation, file, and Canvas policies.
 - Sanitization before insertion into the extension-owned export stage.
+- A full visual-regression suite before it can replace the DOM path.
 
-Keep the current DOM capture as a legacy/fidelity fallback until canonical rendering
-passes visual regression tests.
-
-API data does not remove browser raster limits. Very tall PNG exports must still be
-rejected, segmented, or redirected to PDF/DOCX.
+That is comparable effort to Phases 1–3 combined, for a *fidelity* gain rather than a
+*completeness* gain. Defer until justified. Note also that API data does not remove browser
+raster limits — very tall PNG exports must still be rejected, segmented, or redirected to
+PDF/DOCX regardless of the source.
 
 ---
 
@@ -564,13 +583,35 @@ Before moving DOCX/PDF/PNG to canonical rendering, compare:
 
 ## 16. Rollout plan and acceptance gates
 
-### Phase 0 — observation and fixtures
+The plan is gated. **Two cheap de-risk spikes come before any architecture commitment;**
+if either fails, the approach changes rather than proceeds. Build nothing in `src/chatgpt-data/`
+until Phase 0 is answered.
 
-- Re-verify endpoint, auth, route, identifiers, and schema.
-- Capture sanitized fixtures for every supported content type.
-- Confirm packaged content-script fetch behavior and permissions.
+### Phase 0 — De-risk spikes + fixtures (go/no-go, ~1 day, throwaway code)
 
-**Gate:** no token leakage; runtime validator rejects malformed/hidden data.
+Two load-bearing assumptions are still unverified (see
+[reference §4.8](./chatgpt-internals-reference.md#48-still-unverified-re-verify-before-depending-on-these)).
+Settle them first:
+
+1. **Isolated-world fetch (blocks everything).** Confirm `/api/auth/session` +
+   `/backend-api/conversation/<id>` succeed from the **packaged content script** (isolated
+   world), not just DevTools (main world).
+   **Go/no-go:** if the same-origin `Authorization`+`credentials` fetch fails from the
+   content script, the API-first path is blocked — stop and reconsider (e.g. main-world
+   injection, or staying DOM-only) *before* Phase 1.
+2. **Virtualized scroll-to (blocks TOC navigation only).** On a genuinely long chat
+   (500+ turns), confirm a middle, currently-unmounted message can be reliably mounted and
+   scrolled to within the bounded budget (§9.3).
+   **Go/no-go:** if it can't, still ship the complete API-built TOC *index*, but **not**
+   API-based navigation — limit navigation to mounted turns and label the rest. This gates
+   Phase 3's navigation, not Phases 1–2.
+
+Then capture **sanitized fixtures for every content type in §15** — these are the inputs
+for all Phase 1–3 tests, so they must exist before that code is written.
+
+**Gate:** both spikes answered with recorded evidence; fixtures committed (no tokens,
+cookies, account ids, or private text); validator rejects malformed/hidden data; no token
+leakage.
 
 ### Phase 1 — shared snapshot service
 
@@ -588,28 +629,30 @@ Before moving DOCX/PDF/PNG to canonical rendering, compare:
 
 **Gate:** long-chat output contains first, middle, and last active-branch turns.
 
-### Phase 3 — TOC index
+### Phase 3 — TOC index (navigation only if Phase 0 spike #2 passed)
 
-- Build entries from the shared snapshot.
+- Build the complete index from the shared snapshot (ships regardless of the nav spike).
 - Merge the current streaming turn from DOM.
-- Prototype and test bounded targeted navigation.
+- **If** the virtualized scroll-to spike passed: wire bounded targeted navigation.
+  **If not:** navigate only to mounted turns and clearly label off-screen entries.
 
-**Gate:** complete list plus successful first/middle/last navigation from arbitrary scroll
-positions. Do not ship API-based TOC navigation if this gate fails.
+**Gate:** complete list always; plus successful first/middle/last navigation from arbitrary
+scroll positions **when navigation is enabled**. Do not ship API-based navigation if the
+spike failed.
 
-### Phase 4 — canonical visual exports
-
-- Render snapshot to sanitized canonical DOM.
-- Move DOCX, then PDF, then PNG after format-specific regression testing.
-
-**Gate:** visual and content parity within documented limits; DOM path remains fallback.
-
-### Phase 5 — DOM consolidation
+### Phase 4 — DOM consolidation
 
 - Centralize the remaining page adapter and reduce duplicate observers/scans.
 - Add current-site selector-health checks.
 
 **Gate:** no regression in themes, fonts, RTL, KaTeX copy, quick actions, or retention UI.
+
+### Deferred (separate sub-project) — canonical visual exports
+
+Out of the initial rollout. Render the snapshot to a sanitized canonical DOM and move
+DOCX → PDF → PNG off the live-DOM path, behind format-specific visual-regression tests.
+Scope and schedule this **only after** Phases 1–4 ship and the cost is justified (§10.3).
+DOCX/PDF/PNG stay on the current DOM capture until then.
 
 ---
 
@@ -628,65 +671,25 @@ Strict DOM fallback ──────┘
 Live visual features ─────────→ shared ChatGptDomAdapter
 ```
 
-API-first acquisition solves long-chat **data completeness**. Canonical rendering can
-later solve long-chat **visual export completeness**. TOC indexing benefits immediately,
-but navigation into ChatGPT's virtual list remains a separate feature that must pass its
-own browser acceptance tests.
+API-first acquisition solves long-chat **data completeness** (JSON/MD/CSV + TOC index) —
+that is the core fix and the bulk of the value. Canonical rendering could *later* solve
+long-chat **visual export completeness**, but it is a deferred sub-project, not part of
+this rollout. TOC indexing benefits immediately; navigation into ChatGPT's virtual list is
+gated on a browser spike and may ship index-only.
+
+**Readiness:** the understanding is verified and the architecture (Phases 1–3) is ready to
+build — but only **after** the two Phase 0 go/no-go spikes (isolated-world fetch;
+virtualized scroll-to). Do those first; they decide whether the API path and API-based
+navigation are viable before any architecture is committed.
 
 ---
 
 ## Appendix A — observed response model
 
-```jsonc
-{
-  "conversation_id": "...",
-  "title": "...",
-  "mapping": {
-    "<node-id>": {
-      "id": "<node-id>",
-      "parent": "<parent-id-or-null>",
-      "children": ["<child-id>"],
-      "message": {
-        "id": "<message-id>",
-        "author": { "role": "user|assistant|system|tool" },
-        // content shape varies by content_type — see below
-        "content": { "content_type": "text", "parts": ["...markdown..."] },
-        "recipient": "all",                    // all | assistant | bio | web | web.run | web.search | <tool>
-        "channel": "final",                    // null | final | analysis | commentary
-        "status": "finished_successfully",     // | in_progress
-        "end_turn": true,
-        "metadata": {
-          "model_slug": "gpt-5-1",             // per-message model (varies within a chat)
-          "is_visually_hidden_from_conversation": false,  // authoritative hide flag
-          "citations": [],                     // present on web-search answers
-          "content_references": [],            // resolves citation markers (see Appendix C)
-          "attachments": [],                   // user file/image uploads
-          "finish_details": { "type": "stop" } // | "interrupted"
-        }
-      }
-    }
-  },
-  "current_node": "<active-leaf-node-id>"
-}
-```
-
-Content shape is **not** uniform — normalize per `content_type`:
-
-```jsonc
-// text
-{ "content_type": "text", "parts": ["markdown string", …] }
-
-// code  — text is in `.text`, NOT `.parts`
-{ "content_type": "code", "language": "python", "response_format_name": null, "text": "…" }
-
-// multimodal_text — parts mix strings, text-objects, and asset pointers
-{ "content_type": "multimodal_text", "parts": [
-  "plain markdown string",
-  { "content_type": "text", "text": "…", "direction": "ltr", "decoding_id": "…" },
-  { "content_type": "image_asset_pointer", "asset_pointer": "sediment://file_…",
-    "width": 1282, "height": 1422, "size_bytes": 3430986, "fovea": null, "metadata": {} }
-] }
-```
+Moved to the canonical reference to avoid drift:
+[reference §4.3–4.4](./chatgpt-internals-reference.md#43-conversation-model-mapping) (response
+model, `mapping` shape, and the per-`content_type` normalization including code-in-`.text`
+and object parts).
 
 ## Appendix B — manual re-verification
 
@@ -723,92 +726,18 @@ console.log({
 });
 ```
 
-## Appendix C — verified content & metadata catalog
+## Appendix C — content catalog & citation mechanism
 
-Aggregated from a scan of all 25 conversations in the verification account on 2026-06-30
-(structure only; no message text was read). This is the empirical basis for the fixtures
-in §15 and the allowlist in §8.
+Moved to the canonical reference to avoid drift:
+- Content-type counts, part-object shapes, and the per-message `metadata` catalog:
+  [reference §4.4](./chatgpt-internals-reference.md#44-content-types--part-shapes-verified-catalog).
+- Citation sentinels (`U+E200/E201/E202`), `content_references` index semantics, and the
+  verified `stripCitations()` algorithm:
+  [reference §4.5](./chatgpt-internals-reference.md#45-visibility--citations).
+- Edge cases (no pagination, `404` code, `limit≤100`, URL variants, Canvas, stream status,
+  branch-depth ≠ node-count): [reference §4.7](./chatgpt-internals-reference.md#47-edge-cases--long-chat-behavior-verified).
 
-**Content types seen:** `text` (211), `multimodal_text` (48),
-`model_editable_context` (33), `user_editable_context` (25), `code` (6), `thoughts` (3),
-`reasoning_recap` (2).
+## Appendix D — still unverified
 
-**Author roles:** `assistant`, `user`, `system`, `tool`. **Recipients:** `all`,
-`assistant`, `bio`, `web` / `web.run` / `web.search`, `<tool-name>`. **Channels:** `null`,
-`final`, `commentary`. **Message `status`:** `finished_successfully`, `in_progress`.
-**`finish_details.type`:** `stop`, `interrupted`.
-
-**Part object shapes (within `multimodal_text`):**
-- `{ content_type, text, direction, decoding_id }` — text as an object (extract `.text`).
-- `{ content_type:"image_asset_pointer", asset_pointer, size_bytes, width, height, fovea, metadata }`.
-- `{ content_type, audio_asset_pointer, format, tool_audio_direction, … }` — voice mode.
-- `{ content_type, frames_asset_pointers, video_container_asset_pointer, audio_asset_pointer, … }` — video.
-
-**Per-message `metadata` keys worth knowing:**
-`model_slug` (values seen: `gpt-5-1`, `gpt-5`, `gpt-5-mini`, `gpt-5-t-mini`, `gpt-4o`),
-`is_visually_hidden_from_conversation`, `citations`, `content_references`, `attachments`,
-`finish_details`, `is_complete`, `request_id`, `parent_id`, `timestamp_`.
-
-**Attachment object (user uploads):** `{ id, name, size, mime_type, width, height, source }`.
-
-### Citations — affects *text* export, not just visual (verified mechanism)
-
-Web-search/cited answers (113 of 328 messages here) embed citation **spans** in the
-assistant's Markdown, delimited by private-use-area (PUA) sentinel characters:
-
-| Codepoint | Role |
-|---|---|
-| `U+E200` | span **start** |
-| `U+E202` | internal **separator** (anchor text ↔ ref payload) |
-| `U+E201` | span **end** |
-
-Each span is described by an entry in `metadata.content_references[]`:
-`{ matched_text, start_idx, end_idx, type, refs, items, url, title, alt, safe_urls, thumbnail_url, prompt_text, status, … }`.
-
-**Verified index semantics:** `start_idx`/`end_idx` are exact, **codeunit offsets into the
-raw part string**, and `part.slice(start_idx, end_idx) === matched_text`. In the sampled
-case the span ran `[62, 106)` with `U+E200` at 62 and `U+E201` at 105. The span **wraps
-readable anchor text**, so the whole span — not just the invisible chars — is what ChatGPT
-replaces with a rendered citation chip.
-
-**Correct normalization (replace the whole span, right-to-left):**
-
-```js
-function stripCitations(part, contentReferences = []) {
-  // Replace each [start_idx, end_idx) span using its reference; process descending
-  // so earlier indices stay valid. Replacement depends on ref.type.
-  const spans = contentReferences
-    .filter(r => Number.isInteger(r.start_idx) && Number.isInteger(r.end_idx))
-    .sort((a, b) => b.start_idx - a.start_idx);
-  let out = part;
-  for (const r of spans) {
-    const replacement = renderReference(r); // web → ` [${title}](${url})`; alt_text/others → ''
-    out = out.slice(0, r.start_idx) + replacement + out.slice(r.end_idx);
-  }
-  // Safety net: drop any stray sentinels not covered by a reference.
-  return out.replace(/[\uE200-\uE20F]/g, '');
-}
-```
-
-Do **not** regex-strip only the PUA codepoints: the readable anchor text between `U+E200`
-and `U+E201` would be left orphaned (e.g. a dangling source number). Use the indices.
-`ref.type` seen here: `alt_text` (image alt; empty `refs`, drop it); web types carry
-`url`/`title`/`items` and should render as a Markdown link. Doing nothing leaves invisible
-control characters in exported text — a concrete normalization step, not a visual-only
-concern.
-
----
-
-## Appendix D — still unverified (observe before relying on these)
-
-These could not be confirmed on the verification account and remain open items for Phase 0:
-
-| Item | Why unverified | Risk if assumed |
-|---|---|---|
-| **Scroll-to a virtualized message** on a genuinely long chat | Account's largest chat is 38 nodes — nothing was unmounted | TOC navigation (§9.3) is the riskiest claim; gate it behind a real long-chat test |
-| **Packaged content-script fetch** (isolated world) | All probes ran in the DevTools **main** world | Same-origin cookies are shared, but confirm `Authorization`+`credentials` work from the built extension, not just DevTools |
-| **`/textdocs` item shape** (Canvas) | No Canvas conversation existed to sample | Field names are assumed; capture a real Canvas chat before merging it into export |
-| **`/share/<id>` data source** | No shared link to test | Treat as a distinct adapter; don't assume `/backend-api/conversation/<id>` applies |
-| **Token refresh mid-operation** | Token didn't expire during testing | A long export could outlive the token; re-fetch on `401` |
-| **Rate limiting** | ~75 detail fetches in loops succeeded | No hard limit seen, but don't batch-crawl; single-conversation use only |
-| **Voice/audio/video export** | Parts observed but not rendered | Out of scope; skip with a warning rather than guessing a representation |
+Moved to the canonical reference; these are the open items the Phase 0 spikes (§16) must
+settle: [reference §4.8](./chatgpt-internals-reference.md#48-still-unverified-re-verify-before-depending-on-these).
