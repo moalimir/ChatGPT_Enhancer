@@ -85,8 +85,11 @@ no console errors; all other features unaffected.
 - [ ] `src/export/index.js`: remove the `preflightPngExport` import + call and the
       `exportFormat === 'png'` branch; remove `png` from `normalizeExportFormat`'s allow-list.
 - [ ] `src/export/generators/shared.js`: remove PNG-only helpers if now unused.
-- [ ] Delete `public/assets/libs/html-to-image.min.js`; remove `"html-to-image"` from
-      `package.json` dependencies. (Manifest uses an `assets/libs/*.js` wildcard — no manifest edit.)
+- [ ] ~~Delete the `html-to-image` dep~~ — **CORRECTION (2026-07): keep it.** `html-to-image` is
+      used by `src/export/core/images.js` (`inlineImages`) **and** by `equations.js`→`shared.js`
+      (`renderNodeToPngSafely`, KaTeX→image), and **DOCX/PDF depend on both**. Removing it would
+      break DOCX. The dep, `public/assets/libs/html-to-image.min.js`, `shared.js`, and `equations.js`
+      all stay. (PNG removal still drops ~8.6 kB from the export bundle via the JSON/CSV/PNG code.)
 - [ ] Keep `src/export/core/images.js` — still used by PDF/DOCX image inlining.
 
 **Remove JSON + CSV:**

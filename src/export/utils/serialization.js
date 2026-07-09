@@ -128,39 +128,6 @@ function serializeInlineFragmentsExcludingBlocks(container) {
   return serializeInlineFragments(clone);
 }
 
-export function serializeExportRootToJson(root) {
-  const turns = Array.from(root.children || [])
-    .map((turn, index) => serializeTurnNodeToJson(turn, index))
-    .filter(Boolean);
-
-  return {
-    title: document.title || 'ChatGPT Conversation',
-    sourceUrl: typeof window !== 'undefined' && window.location ? window.location.href : '',
-    exportedAt: new Date().toISOString(),
-    turnCount: turns.length,
-    turns
-  };
-}
-
-export function serializeTurnNodeToJson(turnNode, index) {
-  if (!turnNode) {
-    return null;
-  }
-
-  const direction = resolveNodeDirection(turnNode, serializeInlineText(turnNode));
-  const blocks = serializeChildNodesToBlocks(turnNode);
-  if (!blocks.length) {
-    return null;
-  }
-
-  return {
-    index,
-    role: detectTurnRole(turnNode),
-    direction,
-    blocks
-  };
-}
-
 export function detectTurnRole(turnNode) {
   const directRole = (turnNode.getAttribute('data-message-author-role') || '').trim();
   if (directRole) {
@@ -565,191 +532,6 @@ export function normalizeJsonText(text) {
     return '';
   }
   return stripZeroWidth(text).replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-export function buildCsvRows(payload) {
-  const records = [];
-  let maxTableColumns = 0;
-  const baseHeader = ['turn_index', 'role', 'direction', 'block_index', 'block_type', 'text'];
-  const turns = payload && Array.isArray(payload.turns) ? payload.turns : [];
-
-  turns.forEach((turn, turnIdx) => {
-    const blocks = Array.isArray(turn && turn.blocks) ? turn.blocks : [];
-    const turnIndex = Number.isFinite(turn && turn.index) ? turn.index : turnIdx;
-
-    if (!blocks.length) {
-      records.push({
-        base: [turnIndex, turn?.role || '', turn?.direction || '', '', '', ''],
-        tableRowIndex: '',
-        cells: {}
-      });
-      return;
-    }
-
-    blocks.forEach((block, blockIdx) => {
-      if (block && block.type === 'table') {
-        const { matrix, columnCount } = materializeTableBlock(block);
-        maxTableColumns = Math.max(maxTableColumns, columnCount);
-
-        if (!matrix.length) {
-          records.push({
-            base: [turnIndex, turn?.role || '', turn?.direction || '', blockIdx + 1, 'table', ''],
-            tableRowIndex: '',
-            cells: {}
-          });
-          return;
-        }
-
-        matrix.forEach((row, rowIndex) => {
-          const cells = {};
-          row.forEach((value, colIdx) => {
-            const name = `table_col_${colIdx + 1}`;
-            cells[name] = value || '';
-          });
-          records.push({
-            base: [turnIndex, turn?.role || '', turn?.direction || '', blockIdx + 1, 'table', ''],
-            tableRowIndex: rowIndex + 1,
-            cells
-          });
-        });
-        return;
-      }
-
-      const rawText = blockToPlainText(block, 0);
-      const text = typeof rawText === 'string' ? rawText.replace(/\s+$/g, '') : '';
-      records.push({
-        base: [
-          turnIndex,
-          turn?.role || '',
-          turn?.direction || '',
-          blockIdx + 1,
-          block && block.type ? block.type : '',
-          text
-        ],
-        tableRowIndex: '',
-        cells: {}
-      });
-    });
-  });
-
-  const tableColumns = [];
-  for (let i = 0; i < maxTableColumns; i += 1) {
-    tableColumns.push(`table_col_${i + 1}`);
-  }
-  const header = maxTableColumns ? [...baseHeader, 'table_row_index', ...tableColumns] : baseHeader;
-
-  const rows = records.map((record) => {
-    if (!maxTableColumns) {
-      return record.base;
-    }
-    const values = tableColumns.map((name) => record.cells[name] || '');
-    return [...record.base, record.tableRowIndex || '', ...values];
-  });
-
-  return [header, ...rows];
-}
-
-export function formatCsvRow(columns) {
-  return columns.map((value) => escapeCsvValue(value == null ? '' : value)).join(',');
-}
-
-export function escapeCsvValue(value) {
-  const stringValue = typeof value === 'string' ? value : String(value);
-  const sanitized = sanitizeCsvCell(stringValue);
-  const normalized = sanitized.replace(/\r\n?/g, '\n');
-  const crlfNormalized = normalized.replace(/\n/g, '\r\n');
-  if (!/[",\r\n]/.test(crlfNormalized)) {
-    return crlfNormalized;
-  }
-  return `"${crlfNormalized.replace(/"/g, '""')}"`;
-}
-
-function sanitizeCsvCell(raw) {
-  if (!raw) {
-    return '';
-  }
-  const trimmed = raw.replace(/^\s+/, '');
-  const first = trimmed[0];
-  if (first && ['=', '+', '-', '@'].includes(first)) {
-    return `'${raw}`;
-  }
-  return raw;
-}
-
-function materializeTableBlock(block) {
-  const { matrix, columnCount } = buildTableMatrix(block);
-  const width = columnCount;
-  const normalizedMatrix = matrix.map((row) => padRow(row, width));
-  return { matrix: normalizedMatrix, columnCount: width };
-}
-
-function buildTableMatrix(block) {
-  const rows = Array.isArray(block && block.rows) ? block.rows : [];
-  const spanTracker = [];
-  const matrix = [];
-  let columnCount = 0;
-
-  rows.forEach((row) => {
-    const cells = Array.isArray(row && row.cells) ? row.cells : [];
-    const line = [];
-    let colIndex = 0;
-
-    const advanceThroughSpans = () => {
-      while ((spanTracker[colIndex] || 0) > 0) {
-        line.push('');
-        spanTracker[colIndex] -= 1;
-        colIndex += 1;
-      }
-    };
-
-    advanceThroughSpans();
-
-    cells.forEach((cell) => {
-      advanceThroughSpans();
-      const text = extractTableCellText(cell);
-      const colSpan = Number.isFinite(cell?.colSpan) && cell.colSpan > 1 ? cell.colSpan : 1;
-      const rowSpan = Number.isFinite(cell?.rowSpan) && cell.rowSpan > 1 ? cell.rowSpan : 1;
-
-      line.push(text);
-      for (let i = 1; i < colSpan; i += 1) {
-        line.push('');
-      }
-
-      if (rowSpan > 1) {
-        const remaining = rowSpan - 1;
-        for (let offset = 0; offset < colSpan; offset += 1) {
-          const targetCol = colIndex + offset;
-          spanTracker[targetCol] = (spanTracker[targetCol] || 0) + remaining;
-        }
-      }
-
-      colIndex += colSpan;
-    });
-
-    advanceThroughSpans();
-
-    columnCount = Math.max(columnCount, line.length);
-    matrix.push(line);
-  });
-
-  return { matrix, columnCount };
-}
-
-function extractTableCellText(cell) {
-  const fragments = cell && Array.isArray(cell.content) ? cell.content : [];
-  const nestedBlocks = Array.isArray(cell && cell.blocks) ? cell.blocks : [];
-  const rawInline = inlineFragmentsToPlainText(fragments, { preserveWhitespace: true });
-  const nestedText = blocksToPlainText(nestedBlocks, 0);
-  const combined = [rawInline, nestedText].filter((value) => value && value.trim()).join('\n');
-  return normalizeJsonText(combined || rawInline);
-}
-
-function padRow(row, width) {
-  const copy = Array.isArray(row) ? row.slice() : [];
-  for (let i = copy.length; i < width; i += 1) {
-    copy.push('');
-  }
-  return copy;
 }
 
 function renderSuperscriptText(text) {
@@ -1773,4 +1555,53 @@ function extractInlineCodeText(element) {
     return '';
   }
   return normalized.replace(/\n/g, ' ');
+}
+
+export function serializeExportRootToPlainText(root) {
+  const parts = [];
+  const metadata = buildPlainTextMetadata();
+  if (metadata) {
+    parts.push(metadata);
+  }
+
+  const turns = Array.from(root?.children || []);
+  turns.forEach((turn, index) => {
+    if (!turn || turn.nodeType !== Node.ELEMENT_NODE) {
+      return;
+    }
+    const blocks = serializeChildNodesToBlocks(turn);
+    const body = blocksToPlainText(blocks).trim();
+    if (!body) {
+      return;
+    }
+    parts.push(`${formatRolePlainLabel(detectTurnRole(turn), index)}:`, body);
+  });
+
+  return parts.join('\n\n');
+}
+
+function buildPlainTextMetadata() {
+  const title = typeof document !== 'undefined' && document.title ? document.title.trim() : '';
+  const url = typeof window !== 'undefined' && window.location ? window.location.href : '';
+  const exportedAt = new Date().toISOString();
+  const lines = [title || 'ChatGPT Conversation'];
+  if (url) {
+    lines.push(`URL: ${url}`);
+  }
+  lines.push(`Exported: ${exportedAt}`);
+  return lines.join('\n');
+}
+
+function formatRolePlainLabel(role, index) {
+  const normalized = typeof role === 'string' ? role.toLowerCase() : '';
+  if (normalized === 'user') {
+    return 'User';
+  }
+  if (normalized === 'assistant') {
+    return 'ChatGPT';
+  }
+  if (normalized) {
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+  return `Message ${index + 1}`;
 }

@@ -27,9 +27,7 @@ const FORMAT_OPTIONS = [
   { value: 'pdf', label: 'PDF' },
   { value: 'docx', label: 'Word' },
   { value: 'markdown', label: 'Markdown' },
-  { value: 'png', label: 'Image' },
-  { value: 'json', label: 'JSON' },
-  { value: 'csv', label: 'CSV' }
+  { value: 'txt', label: 'Text' }
 ];
 
 const SCOPE_OPTIONS = [

@@ -26,7 +26,7 @@ export function normalizeExportFormat(format) {
   if (normalized === 'md') {
     return 'markdown';
   }
-  if (['pdf', 'docx', 'json', 'png', 'markdown', 'csv'].includes(normalized)) {
+  if (['pdf', 'docx', 'markdown', 'txt'].includes(normalized)) {
     return normalized;
   }
   return DEFAULT_SETTINGS.exportFormat;

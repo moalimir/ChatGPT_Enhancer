@@ -19,7 +19,6 @@ import {
 } from './core/normalizer.js';
 import { inlineImages } from './core/images.js';
 import { getGenerator } from './generators/index.js';
-import { preflightPngExport } from './generators/png.js';
 import { detectTurnRole } from './utils/serialization.js';
 
 // UI progress bridge; consumed by content script to show toast updates.
@@ -36,7 +35,7 @@ function normalizeExportFormat(format) {
   if (normalized === 'md') {
     return 'markdown';
   }
-  if (['pdf', 'docx', 'png', 'json', 'markdown', 'csv'].includes(normalized)) {
+  if (['pdf', 'docx', 'markdown', 'txt'].includes(normalized)) {
     return normalized;
   }
   return 'pdf';
@@ -54,7 +53,7 @@ function normalizeExportScope(scope) {
 }
 
 function isTextExportFormat(format) {
-  return format === 'json' || format === 'markdown' || format === 'csv';
+  return format === 'markdown' || format === 'txt';
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -126,9 +125,6 @@ async function handleExportRequest(format, scope) {
     ensureDirectionalConsistency(root);
     if (!isTextExportFormat(exportFormat)) {
       insertRtlWeightBoundaries(root);
-    }
-    if (exportFormat === 'png') {
-      preflightPngExport(root);
     }
     dispatchProgress('fonts', { format: exportFormat });
     await ensureExportFontsLoaded();
