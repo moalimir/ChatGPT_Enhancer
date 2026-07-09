@@ -207,7 +207,6 @@ export function attachSettingsListeners(controls, deps) {
     fixKatex: controls.fixKatex,
     fixCode: controls.fixCode,
     copyKatex: controls.copyKatex,
-    tableOfContents: controls.tableOfContents,
     exportQuickAction: controls.exportQuickAction
   }).forEach(([key, input]) => {
     if (!input) {
@@ -357,9 +356,6 @@ export function applySettingsToUI(controls, settings, deps) {
   if (controls.copyKatex) {
     controls.copyKatex.checked = nextSettings.copyKatex;
   }
-  if (controls.tableOfContents) {
-    controls.tableOfContents.checked = nextSettings.tableOfContents;
-  }
   if (controls.exportQuickAction) {
     controls.exportQuickAction.checked = nextSettings.exportQuickAction;
   }
@@ -392,7 +388,6 @@ export function applySettingsToUI(controls, settings, deps) {
     controls.fixKatex,
     controls.fixCode,
     controls.copyKatex,
-    controls.tableOfContents,
     controls.exportQuickAction
   ].forEach((input) => {
     if (!input) {

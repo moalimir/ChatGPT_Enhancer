@@ -8,12 +8,10 @@ import {
   applyTheme,
   getChatGPTThemeMode,
   normalizeThemeAlias,
-  registerThemeTokenApplier,
   removeTheme
 } from './theme/index.js';
 import { DirectionFixer } from './fixers/direction.js';
 import { FontManager } from './fonts/index.js';
-import { TocManager } from './toc/index.js';
 import { KatexManager } from './fixers/katex.js';
 import { getMessageSelector } from './selectors.js';
 import { QuickActionManager } from './quick-actions/index.js';
@@ -49,7 +47,6 @@ setFixerManagerEnabled(true);
 bootstrap();
 
 async function bootstrap() {
-  registerThemeTokenApplier(() => TocManager.applyThemeTokens());
   FontManager.setMessageSelector(getMessageSelector());
   try {
     const stored = await loadSettings();
@@ -71,7 +68,6 @@ function initializeManagers(settings) {
   }
   DirectionFixer.init(settings);
   FontManager.init(settings);
-  TocManager.init(settings);
   KatexManager.init(settings);
   QuickActionManager.init(settings);
   syncFixerObserver();
@@ -119,7 +115,6 @@ function handleStorageChanges(changes, areaName) {
   }
   DirectionFixer.update(picked);
   FontManager.update(picked);
-  TocManager.update(picked);
   KatexManager.update(picked);
   QuickActionManager.update(picked);
   syncFixerObserver();
@@ -139,10 +134,6 @@ function extractRelevantChanges(changes) {
     'fontsEnabled',
     'fontEnglish',
     'fontPersian',
-    'tableOfContents',
-    'tableOfContentsCollapsed',
-    'tableOfContentsPosition',
-    'tableOfContentsSize',
     'copyKatex',
     'exportQuickAction',
     'exportQuickActionPosition',
@@ -159,8 +150,6 @@ function extractRelevantChanges(changes) {
         if (typeof normalized === 'string' && normalized) {
           nextSettings.theme = normalized;
         }
-      } else if (key === 'tableOfContentsPosition' || key === 'tableOfContentsSize') {
-        nextSettings[key] = changes[key]?.newValue || null;
       } else {
         nextSettings[key] = changes[key]?.newValue;
       }

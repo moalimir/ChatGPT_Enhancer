@@ -97,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
   controls.fixKatex = document.getElementById('toggle-katex');
   controls.fixCode = document.getElementById('toggle-code');
   controls.copyKatex = document.getElementById('toggle-copy');
-  controls.tableOfContents = document.getElementById('toggle-toc');
   controls.exportQuickAction = document.getElementById('toggle-export-quick-action');
   controls.refreshBtn = document.getElementById('refresh-btn');
   controls.donateBtn = document.getElementById('donate-btn');
