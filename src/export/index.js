@@ -3,15 +3,14 @@
  *
  * Responsibilities:
  * - Gate exports to single-flight per tab and clean up orphaned stages/styles.
- * - Coordinate preload steps (virtualized scrape, normalization, fonts, images).
+ * - Coordinate API loading, normalization, fonts, and images.
  * - Route to format-specific generators and emit progress/error events for the UI.
  */
 
 import { EXPORT_MESSAGE_TYPE, EXPORT_STAGE_CLASS } from './constants.js';
 import { EXPORT_STYLE_BLOCK } from './styles.js';
 import { ensureExportFontsLoaded } from './utils/assets.js';
-import { ensureConversationContentLoaded, collectConversation } from './core/scraper.js';
-import { sanitizeExportNode, removeTrailingWhitespace, hasRenderableContent } from './core/sanitizer.js';
+import { loadConversationFromApi } from './core/conversation-source.js';
 import {
   normalizeUnsupportedColors,
   ensureDirectionalConsistency,
@@ -19,7 +18,7 @@ import {
 } from './core/normalizer.js';
 import { inlineImages } from './core/images.js';
 import { getGenerator } from './generators/index.js';
-import { detectTurnRole } from './utils/serialization.js';
+import { exportMessagesAsMarkdown } from './generators/text.js';
 
 // UI progress bridge; consumed by content script to show toast updates.
 const PROGRESS_EVENT = 'GPT_ENHANCER_EXPORT_PROGRESS';
@@ -114,25 +113,36 @@ async function handleExportRequest(format, scope) {
     removeOrphanedStages();
     dispatchProgress('loading-content', { format: exportFormat });
 
-    const { root, stage, styleNode } = await prepareExportStage(exportScope);
+    const { messages } = await loadConversationFromApi({
+      scope: exportScope,
+      includeAssets: !isTextExportFormat(exportFormat)
+    });
+    if (exportFormat === 'markdown') {
+      dispatchProgress('generating', { format: exportFormat });
+      exportMessagesAsMarkdown(messages);
+      dispatchExportSuccessEvent();
+      dispatchProgress('done', { format: exportFormat });
+      return;
+    }
+
+    const { root, stage, styleNode } = await prepareExportStage(messages, exportFormat !== 'txt');
     run.stage = stage;
     run.styleNode = styleNode;
     attachUnloadGuards(run);
     throwIfAborted(run);
 
-    dispatchProgress('normalizing', { format: exportFormat });
-    normalizeUnsupportedColors(root);
-    ensureDirectionalConsistency(root);
     if (!isTextExportFormat(exportFormat)) {
+      dispatchProgress('normalizing', { format: exportFormat });
+      normalizeUnsupportedColors(root);
+      ensureDirectionalConsistency(root);
       insertRtlWeightBoundaries(root);
-    }
-    dispatchProgress('fonts', { format: exportFormat });
-    await ensureExportFontsLoaded();
-    throwIfAborted(run);
-
-    if (!isTextExportFormat(exportFormat)) {
+      dispatchProgress('fonts', { format: exportFormat });
+      await ensureExportFontsLoaded();
+      throwIfAborted(run);
       dispatchProgress('images', { format: exportFormat });
       await inlineImages(root, { signal: run.abortController ? run.abortController.signal : null });
+      const unresolved = root.querySelectorAll('img:not([src^="data:"])').length;
+      if (unresolved) throw new Error(`${unresolved} image(s) could not be embedded in the export.`);
     }
 
     throwIfAborted(run);
@@ -142,7 +152,7 @@ async function handleExportRequest(format, scope) {
       throw new Error(`No generator available for format: ${exportFormat}`);
     }
     dispatchProgress('generating', { format: exportFormat });
-    await generator(exportFormat === 'png' ? stage : root, root);
+    await generator(root, root);
     dispatchExportSuccessEvent();
     dispatchProgress('done', { format: exportFormat });
   } finally {
@@ -153,19 +163,9 @@ async function handleExportRequest(format, scope) {
   }
 }
 
-async function prepareExportStage(scope) {
-  await ensureConversationContentLoaded();
-  const exportRoot = collectConversation(sanitizeExportNode, hasRenderableContent, removeTrailingWhitespace);
-  if (!exportRoot) {
-    throw new Error('Unable to locate conversation content on this page.');
-  }
-  filterExportRootByScope(exportRoot, scope);
-  if (!exportRoot.children.length) {
-    if (scope === 'assistant') {
-      throw new Error('No assistant messages found to export.');
-    }
-    throw new Error('Unable to locate conversation content on this page.');
-  }
+async function prepareExportStage(messages, labels) {
+  const { renderConversation } = await import('./core/render-conversation.js');
+  const exportRoot = renderConversation(messages, { labels });
 
   const stage = document.createElement('div');
   stage.className = EXPORT_STAGE_CLASS;
@@ -276,17 +276,6 @@ function removeOrphanedStages() {
     // Defensive cleanup: if a previous export crashed, remove hidden containers before starting anew.
     if (node && node.parentNode) {
       node.parentNode.removeChild(node);
-    }
-  });
-}
-
-function filterExportRootByScope(root, scope) {
-  if (!root || scope !== 'assistant') {
-    return;
-  }
-  Array.from(root.children).forEach((turn) => {
-    if (detectTurnRole(turn) !== 'assistant') {
-      turn.remove();
     }
   });
 }

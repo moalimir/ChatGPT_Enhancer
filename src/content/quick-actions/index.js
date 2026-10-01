@@ -17,6 +17,8 @@ const QUICK_ACTION_EXPORT_IDLE_LABEL = 'Export';
 const BUSY_STATUSES = new Set(['starting', 'loading-content', 'normalizing', 'fonts', 'images', 'generating']);
 const COLLAPSED_STORAGE_KEY = 'gptEnhancerExportQuickActionCollapsed';
 const COMPOSER_SELECTORS = [
+  'div.ProseMirror[contenteditable="true"][role="textbox"]',
+  '[data-composer-markdown][contenteditable="true"][role="textbox"]',
   'textarea[data-testid="prompt-textarea"]',
   'textarea[placeholder*="Ask"]',
   'main textarea',
@@ -403,11 +405,11 @@ function positionFallback(panelRect) {
 
 function resolveComposerAnchor() {
   for (const selector of COMPOSER_SELECTORS) {
-    const textarea = document.querySelector(selector);
-    if (!textarea || !isUsableRect(textarea.getBoundingClientRect())) {
+    const composer = document.querySelector(selector);
+    if (!composer || !isUsableRect(composer.getBoundingClientRect())) {
       continue;
     }
-    return textarea.closest('form') || textarea.parentElement;
+    return composer.closest('form') || composer.parentElement;
   }
   return null;
 }

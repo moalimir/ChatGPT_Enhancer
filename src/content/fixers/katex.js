@@ -100,6 +100,8 @@ function handleMutations(mutations) {
 }
 
 function extractLatex(element) {
+  const source = element.closest('[data-math-source]')?.getAttribute('data-math-source');
+  if (source) return source;
   const preferred = element.querySelector('.katex-mathml annotation[encoding="application/x-tex"]');
   if (preferred && preferred.textContent) {
     return preferred.textContent.trim();

@@ -327,7 +327,8 @@ function scheduleObserverRelease() {
 }
 
 function getConversationRoot() {
-  return document.querySelector('main') || document.body || document.documentElement;
+  return document.querySelector('[data-thread-find-target="conversation"]') ||
+    document.querySelector('main') || document.body || document.documentElement;
 }
 
 /**
@@ -367,8 +368,12 @@ function attachFixerRootObserver() {
   if (fixerRootObserver || typeof MutationObserver === 'undefined' || !document.body) {
     return;
   }
-  fixerRootObserver = new MutationObserver(() => {
-    scheduleFixerRootCheck();
+  fixerRootObserver = new MutationObserver((mutations) => {
+    const changedRoot = mutations.some((mutation) => Array.from(mutation.addedNodes).some((node) =>
+      node.nodeType === 1 && (node.matches?.('[data-thread-find-target="conversation"], main') ||
+        node.querySelector?.('[data-thread-find-target="conversation"], main'))
+    ));
+    if (changedRoot) scheduleFixerRootCheck();
   });
   fixerRootObserver.observe(document.body, { childList: true, subtree: true });
 }

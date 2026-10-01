@@ -4,17 +4,16 @@
  */
 
 import { DEFAULT_SETTINGS } from '../../common/config.js';
-import { selectCodeNodes } from '../selectors.js';
+import { SELECTORS, selectCodeNodes } from '../selectors.js';
 
 const root = document.documentElement;
 const RESET_VALUES = {
   direction: 'ltr',
-  unicodeBidi: 'isolate',
-  textAlign: 'left'
+  'unicode-bidi': 'isolate',
+  'text-align': 'left'
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };
-let pendingApply = null;
 
 export function applyDirectionFixes(scope = getConversationRoot()) {
   if (!isEnabled() || !scope) {
@@ -27,11 +26,7 @@ export function applyDirectionFixes(scope = getConversationRoot()) {
   clearStyles(codeNodes);
 
   if (currentSettings.fixCode && codeNodes.length) {
-    applyStyles(codeNodes, {
-      direction: RESET_VALUES.direction,
-      unicodeBidi: RESET_VALUES.unicodeBidi,
-      textAlign: RESET_VALUES.textAlign
-    });
+    applyStyles(codeNodes, RESET_VALUES);
   }
 }
 
@@ -115,31 +110,19 @@ function clearStyles(elements) {
 }
 
 function handleMutations(mutations) {
-  if (!isEnabled()) {
+  if (!isEnabled() || !currentSettings.fixCode) {
     return;
   }
-  const shouldApply = mutations.some(
-    (mutation) => mutation.type === 'childList' || mutation.type === 'characterData'
-  );
-  if (!shouldApply) {
-    return;
-  }
-  scheduleApply();
-}
-
-function scheduleApply() {
-  if (pendingApply || !isEnabled()) {
-    return;
-  }
-  const invoke = () => {
-    pendingApply = null;
-    applyDirectionFixes();
-  };
-  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-    pendingApply = window.requestAnimationFrame(invoke);
-  } else {
-    pendingApply = setTimeout(invoke, 16);
-  }
+  const added = new Set();
+  mutations.forEach((mutation) => {
+    if (mutation.type !== 'childList') return;
+    Array.from(mutation.addedNodes).forEach((node) => {
+      if (!(node instanceof Element)) return;
+      if (node.matches(SELECTORS.code)) added.add(node);
+      node.querySelectorAll(SELECTORS.code).forEach((code) => added.add(code));
+    });
+  });
+  applyStyles(added, RESET_VALUES);
 }
 
 function syncRootClasses() {

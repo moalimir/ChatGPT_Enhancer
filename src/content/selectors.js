@@ -7,16 +7,15 @@
 
 const SELECTOR_CANDIDATES = {
   messages: [
+    '[data-content-search-unit-key]',
     '[data-testid="conversation-turn"]',
     '[data-testid^="conversation-turn-"]',
     '[data-testid="chat-message"]',
-    'article[role="presentation"]',
     'div[data-message-author-role]',
-    'li[data-message-author-role]',
-    'article'
+    'li[data-message-author-role]'
   ],
   katex: ['.katex-display', '.katex-html', '.katex-mathml', '.katex'],
-  code: ['pre[data-testid="code-block"]', 'div[data-testid="code-block"] pre', 'pre code', 'pre', 'code']
+  code: ['[data-markdown-copy="code-block"] code', 'pre code', 'pre', 'code']
 };
 
 const selectorCache = new Map();
@@ -74,6 +73,13 @@ export function resetSelectorCache() {
 
 export function selectMessageNodes(root = document) {
   return resolveSelector('messages', root);
+}
+
+export function getMessageRole(node) {
+  const key = node?.getAttribute?.('data-content-search-unit-key');
+  if (key) return key.slice(key.lastIndexOf(':') + 1).toLowerCase();
+  const direct = node?.getAttribute?.('data-message-author-role');
+  return (direct || node?.querySelector?.('[data-message-author-role]')?.getAttribute('data-message-author-role') || '').toLowerCase();
 }
 
 export function selectKatexNodes(root = document) {

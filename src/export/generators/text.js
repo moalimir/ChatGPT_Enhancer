@@ -1,13 +1,12 @@
 /**
  * Generators for text-based formats: Markdown and plain text (TXT).
  */
-import { serializeExportRootToMarkdown, serializeExportRootToPlainText } from '../utils/serialization.js';
+import { serializeExportRootToPlainText, serializeMessagesToMarkdown } from '../utils/serialization.js';
 import { triggerDownload, buildFilename } from '../utils/download.js';
 
-export function exportAsMarkdown(root) {
-  const markdown = serializeExportRootToMarkdown(root);
-  const content = markdown.endsWith('\n') ? markdown : `${markdown}\n`;
-  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+export function exportMessagesAsMarkdown(messages) {
+  const markdown = serializeMessagesToMarkdown(messages);
+  const blob = new Blob([`${markdown}\n`], { type: 'text/markdown;charset=utf-8' });
   triggerDownload(blob, buildFilename('md'));
 }
 

@@ -42,37 +42,12 @@ html.chatgpt-font-control-enabled .chatgpt-font-message .gpt-enhancer-katex-prot
   text-align: center !important;
 }
 
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code main [data-message-author-role] pre,
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code
-  main
-  [data-message-author-role]
-  pre
-  code,
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code
-  main
-  [data-message-author-role]
-  code,
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code
-  main
-  [data-testid='conversation-turn']
-  pre,
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code
-  main
-  [data-testid='conversation-turn']
-  pre
-  code,
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code
-  main
-  [data-testid='conversation-turn']
-  code {
-  direction: ltr;
-  unicode-bidi: isolate;
-  text-align: left;
-}
+html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code [data-content-search-unit-key] [data-markdown-copy='code-block'],
+html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code [data-content-search-unit-key] code,
+html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code [data-testid^='conversation-turn'] pre,
+html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code [data-testid^='conversation-turn'] code,
 html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code [data-message-author-role] pre,
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code [data-message-author-role] code,
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code pre,
-html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code code {
+html.chatgpt-direction-fix-enabled.chatgpt-direction-fix-code [data-message-author-role] code {
   direction: ltr;
   unicode-bidi: isolate;
   text-align: left;

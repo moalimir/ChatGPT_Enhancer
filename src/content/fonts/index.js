@@ -144,6 +144,7 @@ export function handleFontMutations(mutations, hooks = {}) {
             if (message) {
               touched.add(message);
             }
+            node.querySelectorAll(selector).forEach((nested) => touched.add(nested));
           });
         }
       });

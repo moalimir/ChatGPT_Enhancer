@@ -14,6 +14,7 @@
  */
 
 import { EXPORT_EQUATION_CLASS, RTL_CHAR_REGEX, LTR_CHAR_REGEX } from '../constants.js';
+import { getMessageRole } from '../../content/selectors.js';
 
 // Broader block selector helps preserve structure when ChatGPT wraps text in generic containers.
 const JSON_BLOCK_LEVEL_SELECTOR = [
@@ -129,14 +130,10 @@ function serializeInlineFragmentsExcludingBlocks(container) {
 }
 
 export function detectTurnRole(turnNode) {
-  const directRole = (turnNode.getAttribute('data-message-author-role') || '').trim();
-  if (directRole) {
-    return directRole.toLowerCase();
-  }
-  const nestedRole = turnNode.querySelector('[data-message-author-role]');
-  if (nestedRole && nestedRole.getAttribute('data-message-author-role')) {
-    return nestedRole.getAttribute('data-message-author-role').toLowerCase();
-  }
+  const exportRole = (turnNode.getAttribute('data-gpt-enhancer-role') || '').trim();
+  if (exportRole) return exportRole.toLowerCase();
+  const role = getMessageRole(turnNode);
+  if (role) return role;
   const testId = (turnNode.getAttribute('data-testid') || '').toLowerCase();
   if (testId.includes('user')) {
     return 'user';
@@ -1033,6 +1030,15 @@ export function serializeExportRootToMarkdown(root) {
     parts.push(heading, body);
   });
 
+  return parts.join('\n\n');
+}
+
+export function serializeMessagesToMarkdown(messages) {
+  const parts = [buildMarkdownMetadata()];
+  messages.forEach((message, index) => {
+    const body = message.markdown.replace(/\uE100IMG\d+\uE101/g, '[Image attachment]').trim();
+    if (body) parts.push(formatRoleHeading(message.role, index), body);
+  });
   return parts.join('\n\n');
 }
 

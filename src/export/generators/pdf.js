@@ -1,83 +1,61 @@
-/**
- * Handles PDF generation via the browser's native print dialog.
- */
+/** Print the prepared export in its own document, away from ChatGPT's print CSS. */
 
-import { EXPORT_STAGE_CLASS, EXPORT_ROOT_CLASS } from '../constants.js';
+import { EXPORT_STYLE_BLOCK } from '../styles.js';
 
-export function exportAsPdf() {
-  const printStyle = document.createElement('style');
-  printStyle.textContent = `
-    @page {
-      size: auto;
-      margin-top: 0.6in;
-      margin-bottom: 0.6in;
-      margin-left: 0.4in;
-      margin-right: 0.4in;
-      @top-left { content: ""; }
-      @top-center { content: ""; }
-      @top-right { content: ""; }
-      @bottom-left { content: ""; }
-      @bottom-center { content: ""; }
-      @bottom-right { content: ""; }
-    }
+const PRINT_STYLE = `
+  @page { margin: 0.6in 0.4in; }
+  html, body { height: auto !important; overflow: visible !important; }
+  body { margin: 0; background: #fff; }
+  .gpt-export-root pre {
+    background-color: #000 !important;
+    color: #fff !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+`;
 
-    @media print {
-      body > *:not(.${EXPORT_STAGE_CLASS}) {
-        display: none !important;
-      }
-      .${EXPORT_STAGE_CLASS} {
-        opacity: 1 !important;
-        position: static !important;
-        z-index: 9999 !important;
-      }
-      /* Override table styles to allow edge alignment based on direction */
-      .${EXPORT_ROOT_CLASS} table {
-        width: auto !important;
-        max-width: 100% !important;
-        table-layout: auto !important;
-      }
-      /* Force code blocks to retain dark styling when printing */
-      .${EXPORT_ROOT_CLASS} pre {
-        background-color: #000 !important;
-        color: #fff !important;
-        border-radius: 6px !important;
-        print-color-adjust: exact !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      .${EXPORT_ROOT_CLASS} .katex {
-        display: inline-flex !important;
-        align-items: center;
-        vertical-align: -0.05em !important;
-      }
-      .${EXPORT_ROOT_CLASS} .katex-display > .katex {
-        display: block !important;
-        align-items: initial;
-        vertical-align: baseline !important;
-        text-align: center !important;
-      }
-      .${EXPORT_ROOT_CLASS} .katex-display {
-        text-align: center !important;
-        margin: 16px auto;
-      }
-    }
-  `;
-  document.head.appendChild(printStyle);
-  return new Promise((resolve) => {
-    let done = false;
-    const cleanup = () => {
-      if (done) {
-        return;
-      }
-      done = true;
+export async function exportAsPdf(root) {
+  if (!root) throw new Error('PDF export content is unavailable.');
+
+  const frame = document.createElement('iframe');
+  frame.title = 'GPT Enhancer PDF export';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = 'position:fixed;left:0;top:0;width:800px;height:600px;opacity:0;pointer-events:none;z-index:-1;border:0';
+  frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>${EXPORT_STYLE_BLOCK}${PRINT_STYLE}</style></head><body></body></html>`;
+
+  await new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error('PDF print document did not load.')), 10000);
+    frame.onload = () => { window.clearTimeout(timeout); resolve(); };
+    frame.onerror = () => { window.clearTimeout(timeout); reject(new Error('PDF print document failed to load.')); };
+    document.body.appendChild(frame);
+  }).catch((error) => {
+    frame.remove();
+    throw error;
+  });
+
+  const printWindow = frame.contentWindow;
+  frame.contentDocument.body.appendChild(frame.contentDocument.adoptNode(root));
+  void frame.contentDocument.body.offsetHeight;
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
       window.clearTimeout(timeout);
-      window.removeEventListener('afterprint', cleanup);
-      if (printStyle.parentNode) {
-        printStyle.parentNode.removeChild(printStyle);
-      }
-      resolve();
+      printWindow.removeEventListener('afterprint', onAfterPrint);
+      frame.remove();
+      if (error) reject(error);
+      else resolve();
     };
-    const timeout = window.setTimeout(cleanup, 5000);
-    window.addEventListener('afterprint', cleanup, { once: true });
-    window.print();
+    const onAfterPrint = () => finish();
+    const timeout = window.setTimeout(() => finish(new Error('PDF print timed out.')), 120000);
+    printWindow.addEventListener('afterprint', onAfterPrint, { once: true });
+    try {
+      printWindow.focus();
+      printWindow.print();
+    } catch (error) {
+      finish(error);
+    }
   });
 }
