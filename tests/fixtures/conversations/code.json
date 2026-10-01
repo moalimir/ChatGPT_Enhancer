@@ -1,0 +1,18 @@
+{
+  "_case": "content_type=code keeps source in content.text (NOT content.parts) plus content.language. Normalizer must read .text and emit a fenced block. Guards against the earlier wrong assumption that code lives in parts.",
+  "title": "Code block",
+  "conversation_id": "00000000-0000-4000-8000-000000000007",
+  "current_node": "a1",
+  "mapping": {
+    "root": { "id": "root", "parent": null, "children": ["u1"], "message": null },
+    "u1": { "id": "u1", "parent": "root", "children": ["a1"], "message": {
+      "id": "u1", "author": { "role": "user" }, "create_time": 1,
+      "content": { "content_type": "text", "parts": ["Show a Python hello world."] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } },
+    "a1": { "id": "a1", "parent": "u1", "children": [], "message": {
+      "id": "a1", "author": { "role": "assistant" }, "create_time": 2,
+      "content": { "content_type": "code", "language": "python", "response_format_name": null, "text": "print(\"hello world\")" },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } }
+  }
+}

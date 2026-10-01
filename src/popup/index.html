@@ -182,35 +182,27 @@
           </button>
           <div id="stabilize-section" class="accordion__content">
             <label class="toggle toggle--sub">
-              <input type="checkbox" id="toggle-toc" class="toggle__input" checked />
-              <span class="toggle__track">
-                <span class="toggle__thumb"></span>
-              </span>
+              <input type="checkbox" id="toggle-toc" class="toggle__input" />
+              <span class="toggle__track"><span class="toggle__thumb"></span></span>
               <div class="toggle__content">
-                <span class="toggle__title">Table of contents</span>
-                <span class="toggle__hint">create a table of content for the conversation.</span>
+                <span class="toggle__title">Conversation contents</span>
+                <span class="toggle__hint">Jump to a reply in the active branch.</span>
               </div>
             </label>
-
             <label class="toggle toggle--sub">
-              <input type="checkbox" id="toggle-katex" class="toggle__input" />
-              <span class="toggle__track">
-                <span class="toggle__thumb"></span>
-              </span>
+              <input type="checkbox" id="toggle-persian-align" class="toggle__input" />
+              <span class="toggle__track"><span class="toggle__thumb"></span></span>
               <div class="toggle__content">
-                <span class="toggle__title">KaTeX formulas</span>
-                <span class="toggle__hint">Lock math layout left-to-right.</span>
+                <span class="toggle__title">Align Persian text right</span>
+                <span class="toggle__hint">Keep English phrases and equations readable in mixed text.</span>
               </div>
             </label>
-
             <label class="toggle toggle--sub">
-              <input type="checkbox" id="toggle-copy" class="toggle__input" />
-              <span class="toggle__track">
-                <span class="toggle__thumb"></span>
-              </span>
+              <input type="checkbox" id="toggle-code" class="toggle__input" />
+              <span class="toggle__track"><span class="toggle__thumb"></span></span>
               <div class="toggle__content">
-                <span class="toggle__title">Click to copy equations</span>
-                <span class="toggle__hint">Tap any KaTeX formula to grab its LaTeX.</span>
+                <span class="toggle__title">Keep code left to right</span>
+                <span class="toggle__hint">Preserve code order in Persian conversations.</span>
               </div>
             </label>
 
@@ -221,9 +213,10 @@
               </span>
               <div class="toggle__content">
                 <span class="toggle__title">Export quick action</span>
-                <span class="toggle__hint">Show a floating export button on ChatGPT.</span>
+                <span class="toggle__hint">Show a draggable export control on ChatGPT.</span>
               </div>
             </label>
+
           </div>
         </section>
 
@@ -306,19 +299,9 @@
                   <span class="export-segment__label">Markdown</span>
                 </label>
                 <label class="export-segment__option">
-                  <input class="export-segment__input" type="radio" name="export-format" id="export-format-png"
-                    value="png" />
-                  <span class="export-segment__label">Image</span>
-                </label>
-                <label class="export-segment__option">
-                  <input class="export-segment__input" type="radio" name="export-format" id="export-format-json"
-                    value="json" />
-                  <span class="export-segment__label">JSON</span>
-                </label>
-                <label class="export-segment__option">
-                  <input class="export-segment__input" type="radio" name="export-format" id="export-format-csv"
-                    value="csv" />
-                  <span class="export-segment__label">CSV</span>
+                  <input class="export-segment__input" type="radio" name="export-format" id="export-format-txt"
+                    value="txt" />
+                  <span class="export-segment__label">Text</span>
                 </label>
               </div>
               <div class="export-divider" aria-hidden="true"></div>
@@ -353,9 +336,9 @@
           <span class="panel__author-link-wrap">
             <a class="panel__author-link panel__author-handle" href="https://t.me/moalimir" target="_blank"
               rel="noopener noreferrer">
-              @moalimirinfinity
+              @moalimir
             </a>
-            <span class="panel__author-socials" role="group" aria-label="Moalimirinfinity social links">
+            <span class="panel__author-socials" role="group" aria-label="Moalimir social links">
               <a class="panel__social-link" href="https://t.me/moalimir" target="_blank" rel="noopener noreferrer"
                 aria-label="Telegram">
                 <svg class="panel__social-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
@@ -363,7 +346,7 @@
                     d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.287 5.906q-1.168.486-4.666 2.01-.567.225-.595.442c-.03.243.275.339.69.47l.175.055c.408.133.958.288 1.243.294q.39.01.868-.32 3.269-2.206 3.374-2.23c.05-.012.12-.026.166.016s.042.12.037.141c-.03.129-1.227 1.241-1.846 1.817-.193.18-.33.307-.358.336a8 8 0 0 1-.188.186c-.38.366-.664.64.015 1.088.327.216.589.393.85.571.284.194.568.387.936.629q.14.092.27.187c.331.236.63.448.997.414.214-.02.435-.22.547-.82.265-1.417.786-4.486.906-5.751a1.4 1.4 0 0 0-.013-.315.34.34 0 0 0-.114-.217.53.53 0 0 0-.31-.093c-.3.005-.763.166-2.984 1.09" />
                 </svg>
               </a>
-              <a class="panel__social-link" href="https://github.com/moalimirinfinity" target="_blank"
+              <a class="panel__social-link" href="https://github.com/moalimir" target="_blank"
                 rel="noopener noreferrer" aria-label="GitHub">
                 <svg class="panel__social-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path

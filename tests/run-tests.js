@@ -1,10 +1,10 @@
 import './prompts.manager.test.js';
 import './prompts.controller.test.js';
 import './fonts.feature.test.js';
-import './toc.feature.test.js';
 import './markdown.feature.test.js';
-import './json.feature.test.js';
-import './csv.feature.test.js';
-import './png.feature.test.js';
-import './katex.feature.test.js';
+import './txt.feature.test.js';
 import './retention.feature.test.js';
+import './live-contract-probe.test.js';
+import './conversation-source.test.js';
+import './conversation-ui.test.js';
+import './print-renderer.test.js';

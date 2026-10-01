@@ -8,15 +8,13 @@ import {
   applyTheme,
   getChatGPTThemeMode,
   normalizeThemeAlias,
-  registerThemeTokenApplier,
   removeTheme
 } from './theme/index.js';
 import { DirectionFixer } from './fixers/direction.js';
 import { FontManager } from './fonts/index.js';
-import { TocManager } from './toc/index.js';
-import { KatexManager } from './fixers/katex.js';
 import { getMessageSelector } from './selectors.js';
 import { QuickActionManager } from './quick-actions/index.js';
+import { TocManager } from './toc.js';
 
 const root = document.documentElement;
 const EXPORT_PROGRESS_EVENT = 'GPT_ENHANCER_EXPORT_PROGRESS';
@@ -49,7 +47,6 @@ setFixerManagerEnabled(true);
 bootstrap();
 
 async function bootstrap() {
-  registerThemeTokenApplier(() => TocManager.applyThemeTokens());
   FontManager.setMessageSelector(getMessageSelector());
   try {
     const stored = await loadSettings();
@@ -71,9 +68,8 @@ function initializeManagers(settings) {
   }
   DirectionFixer.init(settings);
   FontManager.init(settings);
-  TocManager.init(settings);
-  KatexManager.init(settings);
   QuickActionManager.init(settings);
+  TocManager.init(settings);
   syncFixerObserver();
   scheduleObserverRelease();
   attachExportProgressListener();
@@ -119,9 +115,8 @@ function handleStorageChanges(changes, areaName) {
   }
   DirectionFixer.update(picked);
   FontManager.update(picked);
-  TocManager.update(picked);
-  KatexManager.update(picked);
   QuickActionManager.update(picked);
+  TocManager.update(picked);
   syncFixerObserver();
   scheduleObserverRelease();
 }
@@ -133,19 +128,17 @@ function extractRelevantChanges(changes) {
 
   const keys = [
     'enableFix',
-    'fixKatex',
     'fixCode',
+    'alignPersian',
     'theme',
     'fontsEnabled',
     'fontEnglish',
     'fontPersian',
-    'tableOfContents',
-    'tableOfContentsCollapsed',
-    'tableOfContentsPosition',
-    'tableOfContentsSize',
-    'copyKatex',
     'exportQuickAction',
     'exportQuickActionPosition',
+    'tableOfContents',
+    'tocPosition',
+    'tocSize',
     'exportFormat',
     'exportScope'
   ];
@@ -159,8 +152,6 @@ function extractRelevantChanges(changes) {
         if (typeof normalized === 'string' && normalized) {
           nextSettings.theme = normalized;
         }
-      } else if (key === 'tableOfContentsPosition' || key === 'tableOfContentsSize') {
-        nextSettings[key] = changes[key]?.newValue || null;
       } else {
         nextSettings[key] = changes[key]?.newValue;
       }
@@ -250,7 +241,7 @@ function buildExportToastMessage(status, detail) {
     case 'cleanup':
       return null;
     case 'aborted':
-      return 'Export stopped (tab hidden or closed).';
+      return 'Export stopped (page closed).';
     case 'error': {
       const raw = (detail && detail.message) || '';
       if (raw.includes('export-interrupted')) {
@@ -338,7 +329,8 @@ function scheduleObserverRelease() {
 }
 
 function getConversationRoot() {
-  return document.querySelector('main') || document.body || document.documentElement;
+  return document.querySelector('[data-thread-find-target="conversation"]') ||
+    document.querySelector('main') || document.body || document.documentElement;
 }
 
 /**
@@ -378,8 +370,12 @@ function attachFixerRootObserver() {
   if (fixerRootObserver || typeof MutationObserver === 'undefined' || !document.body) {
     return;
   }
-  fixerRootObserver = new MutationObserver(() => {
-    scheduleFixerRootCheck();
+  fixerRootObserver = new MutationObserver((mutations) => {
+    const changedRoot = mutations.some((mutation) => Array.from(mutation.addedNodes).some((node) =>
+      node.nodeType === 1 && (node.matches?.('[data-thread-find-target="conversation"], main') ||
+        node.querySelector?.('[data-thread-find-target="conversation"], main'))
+    ));
+    if (changedRoot) scheduleFixerRootCheck();
   });
   fixerRootObserver.observe(document.body, { childList: true, subtree: true });
 }
@@ -407,6 +403,7 @@ function scheduleFixerRootCheck() {
     const nextTarget = getConversationRoot();
     if (nextTarget && nextTarget !== fixerObserverTarget) {
       attachFixerObserver();
+      TocManager.syncRoute();
     }
   }, 120);
 }
@@ -428,7 +425,7 @@ function handleFixerMutations(mutations) {
   if (typeof DirectionFixer.handleMutations === 'function') {
     DirectionFixer.handleMutations(mutations);
   }
-  KatexManager.handleMutations(mutations);
+  TocManager.handleMutations(mutations);
 }
 
 function syncFixerObserver() {

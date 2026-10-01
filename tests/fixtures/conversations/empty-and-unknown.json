@@ -1,0 +1,30 @@
+{
+  "_case": "Edge content. a1 has empty parts (drop after normalization). a2 has an unknown content_type and an unknown object part (skip + warn; never stringify unknown data into the transcript). u1/a3 are the only real visible turns.",
+  "title": "Empty and unknown",
+  "conversation_id": "00000000-0000-4000-8000-00000000000a",
+  "current_node": "a3",
+  "mapping": {
+    "root": { "id": "root", "parent": null, "children": ["u1"], "message": null },
+    "u1": { "id": "u1", "parent": "root", "children": ["a1"], "message": {
+      "id": "u1", "author": { "role": "user" }, "create_time": 1,
+      "content": { "content_type": "text", "parts": ["Hi"] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } },
+    "a1": { "id": "a1", "parent": "u1", "children": ["a2"], "message": {
+      "id": "a1", "author": { "role": "assistant" }, "create_time": 2,
+      "content": { "content_type": "text", "parts": ["", "   "] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } },
+    "a2": { "id": "a2", "parent": "a1", "children": ["a3"], "message": {
+      "id": "a2", "author": { "role": "assistant" }, "create_time": 3,
+      "content": { "content_type": "future_widget_v9", "parts": [
+        { "content_type": "some_unknown_part", "blob": "opaque", "data": { "x": 1 } }
+      ] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } },
+    "a3": { "id": "a3", "parent": "a2", "children": [], "message": {
+      "id": "a3", "author": { "role": "assistant" }, "create_time": 4,
+      "content": { "content_type": "text", "parts": ["A normal final answer."] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } }
+  }
+}

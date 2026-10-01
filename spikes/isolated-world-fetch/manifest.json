@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "GPT Enhancer Live Contract Probe",
+  "version": "0.0.1",
+  "description": "Throwaway structural DOM and isolated-world API probe. No host permissions.",
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": ["probe.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -3,33 +3,21 @@
  */
 
 import { DEFAULT_SETTINGS } from '../../common/config.js';
+import { attachFloatingPanel } from '../floating-panel.js';
 import { saveSettings } from '../../common/storage.js';
 
 const EXPORT_REQUEST_EVENT = 'GPT_ENHANCER_EXPORT_REQUEST';
 const EXPORT_PROGRESS_EVENT = 'GPT_ENHANCER_EXPORT_PROGRESS';
 const QUICK_ACTION_CLASS = 'gpt-export-quick-action';
-const QUICK_ACTION_MIN_GAP = 12;
-const QUICK_ACTION_DEFAULT_GAP = 20;
-const QUICK_ACTION_BAR_GAP = -36;
-const QUICK_ACTION_VERTICAL_OFFSET = -8;
 const QUICK_ACTION_EXPORT_BUSY_LABEL = 'Exporting...';
 const QUICK_ACTION_EXPORT_IDLE_LABEL = 'Export';
 const BUSY_STATUSES = new Set(['starting', 'loading-content', 'normalizing', 'fonts', 'images', 'generating']);
 const COLLAPSED_STORAGE_KEY = 'gptEnhancerExportQuickActionCollapsed';
-const COMPOSER_SELECTORS = [
-  'textarea[data-testid="prompt-textarea"]',
-  'textarea[placeholder*="Ask"]',
-  'main textarea',
-  'textarea'
-];
-
 const FORMAT_OPTIONS = [
   { value: 'pdf', label: 'PDF' },
   { value: 'docx', label: 'Word' },
   { value: 'markdown', label: 'Markdown' },
-  { value: 'png', label: 'Image' },
-  { value: 'json', label: 'JSON' },
-  { value: 'csv', label: 'CSV' }
+  { value: 'txt', label: 'Text' }
 ];
 
 const SCOPE_OPTIONS = [
@@ -44,31 +32,28 @@ const state = {
   exportButton: null,
   formatInputs: [],
   scopeInputs: [],
-  listeners: null,
   isCollapsed: false
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };
 let progressListenerAttached = false;
-let resizeListenerAttached = false;
 let collapsedPreference = null;
-let positionRafId = null;
-let bodyObserver = null;
+let floating = null;
 
 export const QuickActionManager = {
   init(settings) {
     currentSettings = { ...currentSettings, ...(settings || {}) };
     sync(currentSettings);
-    attachResizeListener();
   },
   update(changes) {
     if (!changes) {
       return;
     }
     const next = { ...currentSettings };
-    ['enableFix', 'exportQuickAction', 'exportFormat', 'exportScope'].forEach((key) => {
+    ['enableFix', 'exportQuickAction', 'exportQuickActionPosition', 'exportFormat', 'exportScope'].forEach((key) => {
       if (Object.prototype.hasOwnProperty.call(changes, key) && changes[key]) {
-        next[key] = changes[key].newValue;
+        const value = changes[key].newValue;
+        next[key] = value;
       }
     });
     currentSettings = next;
@@ -90,7 +75,8 @@ function sync(settings = currentSettings) {
   ensurePanel();
   applyCollapsedState(getCollapsedPreference());
   applySelections(settings);
-  schedulePositionUpdate();
+  floating?.update(settings.exportQuickActionPosition);
+  floating?.layout();
 }
 
 function ensurePanel() {
@@ -108,7 +94,9 @@ function ensurePanel() {
 
   const header = document.createElement('div');
   header.className = 'gpt-export-qa-header';
-  header.title = 'Quick export';
+  header.title = 'Drag to move; use arrow keys to change edge or height';
+  header.tabIndex = 0;
+  header.setAttribute('aria-label', 'Move quick export with arrow keys');
 
   const title = document.createElement('span');
   title.className = 'gpt-export-qa-title';
@@ -146,7 +134,13 @@ function ensurePanel() {
   state.exportButton = exportButton;
   state.formatInputs = formatGroup.inputs;
   state.scopeInputs = scopeGroup.inputs;
-  state.listeners = {};
+  floating = attachFloatingPanel(panel, header, {
+    position: currentSettings.exportQuickActionPosition || { side: 'left', y: 1 },
+    onSave: (position) => {
+      currentSettings.exportQuickActionPosition = position;
+      return saveSettings({ exportQuickActionPosition: position });
+    }
+  });
 
   if (!progressListenerAttached) {
     document.addEventListener(EXPORT_PROGRESS_EVENT, handleExportProgress);
@@ -155,6 +149,8 @@ function ensurePanel() {
 }
 
 function teardown() {
+  floating?.dispose();
+  floating = null;
   if (state.collapseButton) {
     state.collapseButton.removeEventListener('click', handleCollapseToggle);
   }
@@ -167,10 +163,7 @@ function teardown() {
   state.exportButton = null;
   state.formatInputs = [];
   state.scopeInputs = [];
-  state.listeners = null;
   state.isCollapsed = false;
-  disconnectBodyObserver();
-  clearScheduledPositionUpdate();
 }
 
 function buildOptionGroup(titleText, groupName, options, onChange) {
@@ -279,7 +272,7 @@ function handleCollapseToggle() {
   const nextCollapsed = !state.isCollapsed;
   applyCollapsedState(nextCollapsed);
   persistCollapsedPreference(nextCollapsed);
-  schedulePositionUpdate();
+  floating?.layout();
 }
 
 function applyCollapsedState(collapsed) {
@@ -326,131 +319,6 @@ function persistCollapsedPreference(next) {
   } catch (error) {
     /* ignore */
   }
-}
-
-function attachResizeListener() {
-  if (resizeListenerAttached || typeof window === 'undefined') {
-    return;
-  }
-  resizeListenerAttached = true;
-  window.addEventListener('resize', schedulePositionUpdate);
-}
-
-function clearScheduledPositionUpdate() {
-  if (!positionRafId) {
-    return;
-  }
-  if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
-    window.cancelAnimationFrame(positionRafId);
-  } else {
-    window.clearTimeout(positionRafId);
-  }
-  positionRafId = null;
-}
-
-function schedulePositionUpdate() {
-  if (positionRafId) {
-    return;
-  }
-  const schedule =
-    typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
-      ? window.requestAnimationFrame.bind(window)
-      : (callback) => window.setTimeout(callback, 16);
-  positionRafId = schedule(() => {
-    positionRafId = null;
-    updatePanelPosition();
-  });
-}
-
-function updatePanelPosition() {
-  if (!state.panel) {
-    return;
-  }
-  const anchor = resolveComposerAnchor();
-  const panelRect = state.panel.getBoundingClientRect();
-  if (!anchor) {
-    ensureBodyObserver();
-    positionFallback(panelRect);
-    return;
-  }
-  disconnectBodyObserver();
-  const anchorRect = anchor.getBoundingClientRect();
-  if (!isUsableRect(anchorRect)) {
-    positionFallback(panelRect);
-    return;
-  }
-  const leftTarget = anchorRect.right + QUICK_ACTION_BAR_GAP;
-  const topTarget = anchorRect.top + (anchorRect.height - panelRect.height) / 2 + QUICK_ACTION_VERTICAL_OFFSET;
-  const left = clamp(leftTarget, QUICK_ACTION_MIN_GAP, window.innerWidth - panelRect.width - QUICK_ACTION_MIN_GAP);
-  const top = clamp(topTarget, QUICK_ACTION_MIN_GAP, window.innerHeight - panelRect.height - QUICK_ACTION_MIN_GAP);
-  setPanelPosition(left, top);
-}
-
-function positionFallback(panelRect) {
-  if (!panelRect) {
-    panelRect = state.panel?.getBoundingClientRect() || { width: 0, height: 0 };
-  }
-  const left = clamp(
-    window.innerWidth - panelRect.width - QUICK_ACTION_DEFAULT_GAP,
-    QUICK_ACTION_MIN_GAP,
-    window.innerWidth - panelRect.width - QUICK_ACTION_MIN_GAP
-  );
-  const top = clamp(
-    window.innerHeight - panelRect.height - QUICK_ACTION_DEFAULT_GAP,
-    QUICK_ACTION_MIN_GAP,
-    window.innerHeight - panelRect.height - QUICK_ACTION_MIN_GAP
-  );
-  setPanelPosition(left, top);
-}
-
-function resolveComposerAnchor() {
-  for (const selector of COMPOSER_SELECTORS) {
-    const textarea = document.querySelector(selector);
-    if (!textarea || !isUsableRect(textarea.getBoundingClientRect())) {
-      continue;
-    }
-    return textarea.closest('form') || textarea.parentElement;
-  }
-  return null;
-}
-
-function ensureBodyObserver() {
-  if (bodyObserver || !document.body) {
-    return;
-  }
-  bodyObserver = new MutationObserver(() => {
-    schedulePositionUpdate();
-  });
-  bodyObserver.observe(document.body, { childList: true, subtree: true });
-}
-
-function disconnectBodyObserver() {
-  if (!bodyObserver) {
-    return;
-  }
-  bodyObserver.disconnect();
-  bodyObserver = null;
-}
-
-function isUsableRect(rect) {
-  return Boolean(rect && rect.width > 0 && rect.height > 0);
-}
-
-function setPanelPosition(left, top) {
-  if (!state.panel) {
-    return;
-  }
-  state.panel.style.left = `${Math.round(left)}px`;
-  state.panel.style.top = `${Math.round(top)}px`;
-  state.panel.style.right = 'auto';
-  state.panel.style.bottom = 'auto';
-}
-
-function clamp(value, min, max) {
-  if (!Number.isFinite(value)) {
-    return min;
-  }
-  return Math.min(Math.max(value, min), max);
 }
 
 function normalizeExportFormat(format) {

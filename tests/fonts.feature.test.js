@@ -27,7 +27,7 @@ test('font stack prefers English for mixed Persian messages', async () => {
 
   const englishStack = FONT_STACKS.english.inter;
   const persianStack = FONT_STACKS.persian.vazirmatn;
-  const expected = `${englishStack}, ${persianStack}`;
+  const expected = '"Inter", "Vazirmatn", system-ui, sans-serif';
 
   const message = createMessage('سلام Hello');
   applyFontsToMessage(message, { english: englishStack, persian: persianStack });

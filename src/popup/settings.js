@@ -26,7 +26,7 @@ export function normalizeExportFormat(format) {
   if (normalized === 'md') {
     return 'markdown';
   }
-  if (['pdf', 'docx', 'json', 'png', 'markdown', 'csv'].includes(normalized)) {
+  if (['pdf', 'docx', 'markdown', 'txt'].includes(normalized)) {
     return normalized;
   }
   return DEFAULT_SETTINGS.exportFormat;
@@ -204,11 +204,10 @@ export function attachSettingsListeners(controls, deps) {
 
   Object.entries({
     enableFix: controls.enableFix,
-    fixKatex: controls.fixKatex,
     fixCode: controls.fixCode,
-    copyKatex: controls.copyKatex,
-    tableOfContents: controls.tableOfContents,
-    exportQuickAction: controls.exportQuickAction
+    alignPersian: controls.alignPersian,
+    exportQuickAction: controls.exportQuickAction,
+    tableOfContents: controls.tableOfContents
   }).forEach(([key, input]) => {
     if (!input) {
       return;
@@ -348,20 +347,15 @@ export function applySettingsToUI(controls, settings, deps) {
   if (controls.enableFix) {
     controls.enableFix.checked = nextSettings.enableFix;
   }
-  if (controls.fixKatex) {
-    controls.fixKatex.checked = nextSettings.fixKatex;
-  }
   if (controls.fixCode) {
     controls.fixCode.checked = nextSettings.fixCode;
   }
-  if (controls.copyKatex) {
-    controls.copyKatex.checked = nextSettings.copyKatex;
+  if (controls.alignPersian) controls.alignPersian.checked = nextSettings.alignPersian;
+  if (controls.exportQuickAction) {
+    controls.exportQuickAction.checked = nextSettings.exportQuickAction;
   }
   if (controls.tableOfContents) {
     controls.tableOfContents.checked = nextSettings.tableOfContents;
-  }
-  if (controls.exportQuickAction) {
-    controls.exportQuickAction.checked = nextSettings.exportQuickAction;
   }
   if (controls.fontToggle) {
     controls.fontToggle.checked = nextSettings.fontsEnabled;
@@ -389,11 +383,10 @@ export function applySettingsToUI(controls, settings, deps) {
 
   const dependentsDisabled = !nextSettings.enableFix;
   [
-    controls.fixKatex,
     controls.fixCode,
-    controls.copyKatex,
-    controls.tableOfContents,
-    controls.exportQuickAction
+    controls.alignPersian,
+    controls.exportQuickAction,
+    controls.tableOfContents
   ].forEach((input) => {
     if (!input) {
       return;

@@ -1,0 +1,16 @@
+{
+  "_case": "Parent cycle n1<->n2 with current_node=n1. activeBranch() must detect it via the seen-set and throw 'conversation-cycle' (→ typed DOM fallback).",
+  "title": "Traversal cycle",
+  "conversation_id": "00000000-0000-4000-8000-000000000004",
+  "current_node": "n1",
+  "mapping": {
+    "n1": { "id": "n1", "parent": "n2", "children": ["n2"], "message": {
+      "id": "n1", "author": { "role": "assistant" }, "create_time": 1,
+      "content": { "content_type": "text", "parts": ["Node 1"] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true, "metadata": {} } },
+    "n2": { "id": "n2", "parent": "n1", "children": ["n1"], "message": {
+      "id": "n2", "author": { "role": "user" }, "create_time": 2,
+      "content": { "content_type": "text", "parts": ["Node 2"] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } }
+  }
+}

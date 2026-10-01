@@ -1,20 +1,22 @@
 /**
  * Monitors and corrects text direction (RTL/LTR) for code blocks and mixed content.
- * KaTeX direction protection lives in KatexManager to avoid overlapping inline fixes.
+ * Host-rendered equations are excluded from text alignment.
  */
 
+import { blockDirection, DIRECTION_EXCLUSIONS } from '../../common/direction.js';
 import { DEFAULT_SETTINGS } from '../../common/config.js';
-import { selectCodeNodes } from '../selectors.js';
+import { SELECTORS, selectCodeNodes } from '../selectors.js';
 
 const root = document.documentElement;
 const RESET_VALUES = {
   direction: 'ltr',
-  unicodeBidi: 'isolate',
-  textAlign: 'left'
+  'unicode-bidi': 'isolate',
+  'text-align': 'left'
 };
+const TEXT_BLOCKS = '[data-markdown-text-style="assistant-message"] :is(p,h1,h2,h3,h4,h5,h6,li,blockquote,td,th), [data-user-message-bubble] [data-search-result-target]';
+
 
 let currentSettings = { ...DEFAULT_SETTINGS };
-let pendingApply = null;
 
 export function applyDirectionFixes(scope = getConversationRoot()) {
   if (!isEnabled() || !scope) {
@@ -27,12 +29,9 @@ export function applyDirectionFixes(scope = getConversationRoot()) {
   clearStyles(codeNodes);
 
   if (currentSettings.fixCode && codeNodes.length) {
-    applyStyles(codeNodes, {
-      direction: RESET_VALUES.direction,
-      unicodeBidi: RESET_VALUES.unicodeBidi,
-      textAlign: RESET_VALUES.textAlign
-    });
+    applyStyles(codeNodes, RESET_VALUES);
   }
+  scope.querySelectorAll(TEXT_BLOCKS).forEach(alignTextBlock);
 }
 
 export function clearDirectionFixes(scope = getConversationRoot()) {
@@ -40,6 +39,9 @@ export function clearDirectionFixes(scope = getConversationRoot()) {
     return;
   }
   clearStyles(selectCodeNodes(scope).nodes);
+  scope.querySelectorAll('.gpt-enhancer-text-rtl, .gpt-enhancer-text-ltr').forEach((node) => {
+    node.classList.remove('gpt-enhancer-text-rtl', 'gpt-enhancer-text-ltr');
+  });
 }
 
 export function init(settings) {
@@ -59,7 +61,7 @@ export function update(changes) {
   }
   const previous = { ...currentSettings };
   const next = { ...currentSettings };
-  ['enableFix', 'fixKatex', 'fixCode'].forEach((key) => {
+  ['enableFix', 'fixCode', 'alignPersian'].forEach((key) => {
     if (Object.prototype.hasOwnProperty.call(changes, key) && changes[key]) {
       next[key] = changes[key].newValue;
     }
@@ -115,31 +117,43 @@ function clearStyles(elements) {
 }
 
 function handleMutations(mutations) {
-  if (!isEnabled()) {
-    return;
-  }
-  const shouldApply = mutations.some(
-    (mutation) => mutation.type === 'childList' || mutation.type === 'characterData'
-  );
-  if (!shouldApply) {
-    return;
-  }
-  scheduleApply();
+  if (!isEnabled()) return;
+  const added = new Set();
+  const blocks = new Set();
+  mutations.forEach((mutation) => {
+    if (mutation.type === 'characterData') {
+      const block = mutation.target.parentElement?.closest(TEXT_BLOCKS);
+      if (block) addBlockAndAncestors(block, blocks);
+      return;
+    }
+    if (mutation.type !== 'childList') return;
+    const parentBlock = mutation.target.closest?.(TEXT_BLOCKS);
+    if (parentBlock) addBlockAndAncestors(parentBlock, blocks);
+    Array.from(mutation.addedNodes).forEach((node) => {
+      if (!(node instanceof Element)) return;
+      if (currentSettings.fixCode) {
+        if (node.matches(SELECTORS.code)) added.add(node);
+        node.querySelectorAll(SELECTORS.code).forEach((code) => added.add(code));
+      }
+      if (node.matches(TEXT_BLOCKS)) blocks.add(node);
+      node.querySelectorAll(TEXT_BLOCKS).forEach((block) => blocks.add(block));
+    });
+  });
+  if (currentSettings.fixCode) applyStyles(added, RESET_VALUES);
+  blocks.forEach(alignTextBlock);
 }
 
-function scheduleApply() {
-  if (pendingApply || !isEnabled()) {
-    return;
+function addBlockAndAncestors(block, blocks) {
+  for (let node = block; node; node = node.parentElement) {
+    if (node.matches(TEXT_BLOCKS)) blocks.add(node);
   }
-  const invoke = () => {
-    pendingApply = null;
-    applyDirectionFixes();
-  };
-  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-    pendingApply = window.requestAnimationFrame(invoke);
-  } else {
-    pendingApply = setTimeout(invoke, 16);
-  }
+}
+
+function alignTextBlock(block) {
+  if (!(block instanceof HTMLElement) || block.closest(DIRECTION_EXCLUSIONS)) return;
+  const direction = currentSettings.alignPersian ? blockDirection(block) : 'auto';
+  block.classList.toggle('gpt-enhancer-text-rtl', direction === 'rtl');
+  block.classList.toggle('gpt-enhancer-text-ltr', direction === 'ltr');
 }
 
 function syncRootClasses() {

@@ -1,0 +1,22 @@
+{
+  "_case": "Linear user/assistant thread. Expected active branch: n1, n2, n3.",
+  "title": "Linear thread",
+  "conversation_id": "00000000-0000-4000-8000-000000000001",
+  "current_node": "n3",
+  "mapping": {
+    "root": { "id": "root", "parent": null, "children": ["n1"], "message": null },
+    "n1": { "id": "n1", "parent": "root", "children": ["n2"], "message": {
+      "id": "n1", "author": { "role": "user" }, "create_time": 1,
+      "content": { "content_type": "text", "parts": ["What is 2 + 2?"] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } },
+    "n2": { "id": "n2", "parent": "n1", "children": ["n3"], "message": {
+      "id": "n2", "author": { "role": "assistant" }, "create_time": 2,
+      "content": { "content_type": "text", "parts": ["It is 4."] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-5-1" } } },
+    "n3": { "id": "n3", "parent": "n2", "children": [], "message": {
+      "id": "n3", "author": { "role": "user" }, "create_time": 3,
+      "content": { "content_type": "text", "parts": ["Thanks!"] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } }
+  }
+}

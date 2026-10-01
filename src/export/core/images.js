@@ -2,7 +2,6 @@
  * Handles fetching and inlining of external images as Base64 data.
  */
 
-import * as htmlToImage from 'html-to-image';
 
 // Keep concurrent fetches low to avoid hammering storage buckets or hitting request caps.
 const INLINE_CONCURRENCY = 4;
@@ -41,30 +40,10 @@ async function inlineSingleImage(img, signal) {
     return;
   }
 
-  // Prefer credentialed fetch to avoid CORS-restricted buckets; fall back to local rasterization
-  // for same-origin assets. All failures are swallowed so a single bad image never blocks export.
   try {
-    const dataUrl = await fetchImageAsDataUrl(absoluteUrl, signal);
-    if (dataUrl) {
-      setImageData(img, dataUrl);
-      return;
-    }
+    setImageData(img, await fetchImageAsDataUrl(absoluteUrl, signal));
   } catch {
-    /* ignore */
-  }
-
-  if (isSameOrigin(absoluteUrl)) {
-    try {
-      if (signal && signal.aborted) {
-        return;
-      }
-      const dataUrl = await rasterizeImageElement(img);
-      if (dataUrl) {
-        setImageData(img, dataUrl);
-      }
-    } catch {
-      /* ignore */
-    }
+    // The preparation step rejects any unresolved attachment before creating a file.
   }
 }
 
@@ -100,21 +79,6 @@ function fetchImageAsDataUrl(url, signal) {
         signal.removeEventListener('abort', handleAbort);
       }
     });
-}
-
-async function rasterizeImageElement(img) {
-  const clone = img.cloneNode(true);
-  clone.removeAttribute('srcset');
-  const wrapper = document.createElement('div');
-  wrapper.style.display = 'inline-block';
-  wrapper.style.background = '#ffffff';
-  wrapper.appendChild(clone);
-  // Rasterize a same-origin clone to avoid CORS taint; keep it small to cap memory.
-  return htmlToImage.toPng(wrapper, {
-    pixelRatio: 2,
-    cacheBust: true,
-    backgroundColor: '#ffffff'
-  });
 }
 
 function blobToDataUrl(blob) {
@@ -163,13 +127,4 @@ function runWithConcurrency(items, limit, worker, options = {}) {
     runners.push(next());
   }
   return Promise.all(runners);
-}
-
-function isSameOrigin(url) {
-  try {
-    const parsed = new URL(url, window.location.href);
-    return parsed.origin === window.location.origin;
-  } catch {
-    return false;
-  }
 }

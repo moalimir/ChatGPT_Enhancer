@@ -1,0 +1,25 @@
+{
+  "_case": "multimodal_text whose parts mix a plain string, a {text,direction} object (extract .text), and an image_asset_pointer (→ asset ref, resolve lazily). Flattener must handle all three.",
+  "title": "Multimodal",
+  "conversation_id": "00000000-0000-4000-8000-000000000006",
+  "current_node": "a1",
+  "mapping": {
+    "root": { "id": "root", "parent": null, "children": ["u1"], "message": null },
+    "u1": { "id": "u1", "parent": "root", "children": ["a1"], "message": {
+      "id": "u1", "author": { "role": "user" }, "create_time": 1,
+      "content": { "content_type": "multimodal_text", "parts": [
+        "Describe this image:",
+        { "content_type": "image_asset_pointer", "asset_pointer": "sediment://file_000UPLOAD", "size_bytes": 12345, "width": 800, "height": 600, "fovea": null, "metadata": {} }
+      ] },
+      "recipient": "all", "channel": null, "status": "finished_successfully", "end_turn": true, "metadata": {} } },
+    "a1": { "id": "a1", "parent": "u1", "children": [], "message": {
+      "id": "a1", "author": { "role": "assistant" }, "create_time": 2,
+      "content": { "content_type": "multimodal_text", "parts": [
+        "It shows a landscape. ",
+        { "content_type": "text", "text": "متن فارسی", "direction": "rtl", "decoding_id": "d1" },
+        { "content_type": "image_asset_pointer", "asset_pointer": "sediment://file_000GEN", "size_bytes": 3430986, "width": 1282, "height": 1422, "fovea": null, "metadata": { "dalle": {} } }
+      ] },
+      "recipient": "all", "channel": "final", "status": "finished_successfully", "end_turn": true,
+      "metadata": { "model_slug": "gpt-4o" } } }
+  }
+}

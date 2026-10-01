@@ -1,83 +1,51 @@
-/**
- * Handles PDF generation via the browser's native print dialog.
- */
+import { PRINT_STYLE_BLOCK } from '../styles.js';
 
-import { EXPORT_STAGE_CLASS, EXPORT_ROOT_CLASS } from '../constants.js';
-
-export function exportAsPdf() {
-  const printStyle = document.createElement('style');
-  printStyle.textContent = `
-    @page {
-      size: auto;
-      margin-top: 0.6in;
-      margin-bottom: 0.6in;
-      margin-left: 0.4in;
-      margin-right: 0.4in;
-      @top-left { content: ""; }
-      @top-center { content: ""; }
-      @top-right { content: ""; }
-      @bottom-left { content: ""; }
-      @bottom-center { content: ""; }
-      @bottom-right { content: ""; }
+export function fitEquationsForPrint(root) {
+  const printWindow = root.ownerDocument.defaultView;
+  // Fit unusually wide display equations without cropping them at the page edge.
+  root.querySelectorAll('.katex').forEach((math) => {
+    // The HTML wrapper is constrained to the page while its children can overflow.
+    // Measuring its rectangle misses that overflow and makes Chrome shrink every page.
+    const width = Math.max(math.scrollWidth, math.querySelector('.katex-html')?.scrollWidth || 0,
+      math.querySelector('math')?.scrollWidth || 0);
+    const block = math.closest('.gpt-export-math,td,th,p,h1,h2,h3,h4,h5,h6') || root;
+    const available = Math.min(block.clientWidth, root.getBoundingClientRect().width) - 1;
+    if (width > available && available > 0) {
+      math.style.fontSize = `${parseFloat(printWindow.getComputedStyle(math).fontSize) * available / width}px`;
     }
+  });
+}
 
-    @media print {
-      body > *:not(.${EXPORT_STAGE_CLASS}) {
-        display: none !important;
-      }
-      .${EXPORT_STAGE_CLASS} {
-        opacity: 1 !important;
-        position: static !important;
-        z-index: 9999 !important;
-      }
-      /* Override table styles to allow edge alignment based on direction */
-      .${EXPORT_ROOT_CLASS} table {
-        width: auto !important;
-        max-width: 100% !important;
-        table-layout: auto !important;
-      }
-      /* Force code blocks to retain dark styling when printing */
-      .${EXPORT_ROOT_CLASS} pre {
-        background-color: #000 !important;
-        color: #fff !important;
-        border-radius: 6px !important;
-        print-color-adjust: exact !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      .${EXPORT_ROOT_CLASS} .katex {
-        display: inline-flex !important;
-        align-items: center;
-        vertical-align: -0.05em !important;
-      }
-      .${EXPORT_ROOT_CLASS} .katex-display > .katex {
-        display: block !important;
-        align-items: initial;
-        vertical-align: baseline !important;
-        text-align: center !important;
-      }
-      .${EXPORT_ROOT_CLASS} .katex-display {
-        text-align: center !important;
-        margin: 16px auto;
-      }
-    }
-  `;
-  document.head.appendChild(printStyle);
-  return new Promise((resolve) => {
-    let done = false;
-    const cleanup = () => {
-      if (done) {
-        return;
-      }
-      done = true;
-      window.clearTimeout(timeout);
-      window.removeEventListener('afterprint', cleanup);
-      if (printStyle.parentNode) {
-        printStyle.parentNode.removeChild(printStyle);
-      }
-      resolve();
+// The caller has already rendered the content and awaited this document's fonts/images.
+export async function exportAsPdf(root, _root, { signal } = {}) {
+  const printDocument = root.ownerDocument;
+  const printWindow = printDocument.defaultView;
+  const style = printDocument.createElement('style');
+  style.textContent = PRINT_STYLE_BLOCK;
+  printDocument.head.appendChild(style);
+  root.style.maxWidth = '174mm';
+  root.style.width = '100%';
+  fitEquationsForPrint(root);
+  void printDocument.body.offsetHeight;
+  await new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      printWindow.removeEventListener('afterprint', onAfterPrint);
+      signal?.removeEventListener('abort', onAbort);
+      error ? reject(error) : resolve();
     };
-    const timeout = window.setTimeout(cleanup, 5000);
-    window.addEventListener('afterprint', cleanup, { once: true });
-    window.print();
+    const onAfterPrint = () => finish();
+    const onAbort = () => finish(new Error('Export was cancelled.'));
+    const timeout = setTimeout(() => finish(new Error('PDF print timed out.')), 120000);
+    printWindow.addEventListener('afterprint', onAfterPrint, { once: true });
+    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) return onAbort();
+    try {
+      printWindow.focus();
+      printWindow.print();
+    } catch (error) { finish(error); }
   });
 }

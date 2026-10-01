@@ -100,6 +100,7 @@ export function applyTheme(theme, environmentThemeMode) {
     return;
   }
   const mode = typeof environmentThemeMode === 'string' ? environmentThemeMode : getChatGPTThemeMode();
+  root.setAttribute('data-gpt-enhancer-mode', mode === 'dark' ? 'dark' : 'light');
   const { theme: applicableTheme, blocked, requested, requiredMode } = getApplicableTheme(theme, mode);
   resetThemeClasses();
   if (blocked && requested) {
