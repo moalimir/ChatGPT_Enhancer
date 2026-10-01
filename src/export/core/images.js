@@ -6,7 +6,7 @@
 // Keep concurrent fetches low to avoid hammering storage buckets or hitting request caps.
 const INLINE_CONCURRENCY = 4;
 // Bound fetches so one slow image does not stall the entire export.
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 30000;
 
 export async function inlineImages(root, options = {}) {
   if (!root) {

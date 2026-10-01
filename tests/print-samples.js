@@ -71,6 +71,20 @@ const mixed = `${persian}\n\n${english}\n\n## ادامهٔ متن فارسی\n\n
 const base = sample === 'en' ? english : sample === 'fa' ? persian : mixed;
 const messages = [{ role: 'user', markdown: sample === 'en' ? 'Please create study notes.' : 'لطفاً یادداشت‌های خوانا برای مطالعه آماده کن.' },
   { role: 'assistant', markdown: base }];
+const imageUrls = [];
+if (sample === 'images') {
+  for (const [name, width, height] of [['Landscape', 1600, 900], ['Portrait', 900, 1800], ['Transparent', 800, 800]]) {
+    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (name !== 'Transparent') { context.fillStyle = '#e6eef5'; context.fillRect(0, 0, width, height); }
+    context.strokeStyle = '#244b72'; context.lineWidth = 12; context.strokeRect(12, 12, width - 24, height - 24);
+    context.fillStyle = '#3974ab'; context.fillRect(width / 4, height / 4, width / 2, height / 2);
+    context.fillStyle = '#202124'; context.font = '42px sans-serif'; context.fillText(name, 35, 70);
+    const url = URL.createObjectURL(await new Promise((resolve) => canvas.toBlob(resolve, 'image/png')));
+    imageUrls.push(url);
+    messages.push({ role: 'assistant', markdown: `## ${name} image\n\n\uE100IMG0\uE101\n\nIMAGE-END-${name}`, imageUrls: [url] });
+  }
+}
 if (sample === 'long') {
   for (let i = 0; i < 60; i++) messages.push({ role: 'assistant', markdown: `## Section ${i + 1}\n\n${i % 2 ? persian : english}` });
   messages.push({ role: 'assistant', markdown: 'FINAL-TURN-62: completeness verified.' });
@@ -104,8 +118,12 @@ try {
   };
   window.__sampleReady = { turns: root.children.length, equations: root.querySelectorAll('.katex').length,
     errors: root.querySelectorAll('.katex-error').length, rtl: root.querySelectorAll('[dir="rtl"]').length,
+    images: Array.from(root.querySelectorAll('img'), (img) => ({ embedded: img.src.startsWith('data:image/png;'),
+      width: img.naturalWidth, height: img.naturalHeight })),
     font: root.style.fontFamily, fontsLoaded: document.fonts.size };
 } catch (error) {
   window.__sampleReady = { error: error.message };
   document.body.textContent = error.message;
+} finally {
+  imageUrls.forEach((url) => URL.revokeObjectURL(url));
 }

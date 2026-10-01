@@ -4,7 +4,9 @@
 
 - `src/common/conversation-source.js` isolates the private API contract. Reads happen
   only for a requested export or opened Contents panel. Credentials stay in memory.
-  The active branch is validated; hidden, tool, system, and intermediate recaps are filtered.
+  The active branch is validated; hidden messages, tool text, system messages, and intermediate recaps are filtered.
+  Visible generated images stored in tool outputs are retained without their tool text.
+  Image-only replies stay out of Contents because they have no prose heading or message-unit anchor.
 - `src/content/selectors.js` is the compatibility boundary for mounted messages and IDs.
   Unmounted replies have no persistent anchor: Contents seeks within the native scroller
   by API branch order, then positions the exact mounted ID at the top. User input cancels seeking.
@@ -27,6 +29,7 @@
   KaTeX's HTML layout lacks those character metrics.
 - `src/export/core/prepare-document.js` prepares an isolated document's fonts, math styles, and
   images before printing or Word conversion. Math and its WOFF2 fonts are bundled and lazy loaded.
+  Image downloads use four workers and a 30-second limit per image; unresolved images stop export.
 - PDF uses native browser printing; DOCX converts equations to images. Markdown preserves source;
   TXT preserves readable text/TeX. All four separate messages with dividers.
   PDF equations are measured by their intrinsic overflow and fitted individually:
@@ -39,10 +42,13 @@ The packaged API contract was previously proved: 28 visible active-branch messag
 Live navigation preflight found replies 1, 3, 7, 11, and 14 at a 64 px header offset.
 Final packaged smooth clicks on replies 1, 7, and 14 also settled at 64 px, recording
 26, 23, and 16 intermediate scroll positions. Highlights are neutral; all seven
-theme/mode combinations were checked. The suite contains 39 passing tests.
+theme/mode combinations were checked. The suite contains 40 passing tests.
 Mixed prose preserves multiword English phrases, including a phrase split by bold markup.
 The latest live Persian export is 33 A4 pages with embedded Source Sans 3/Vazirmatn.
 Pages 1 and 12 were visually checked for full-width alignment and equation rendering.
+The generated-image live check resolved and decoded all 14 visible PNGs from the active branch.
+A synthetic five-page A4 PDF embeds landscape, portrait, and transparent images at their
+original pixel dimensions; pages 3–5 were rendered and visually checked for complete borders.
 
 The finalization checks use synthetic English, Persian, mixed-language, selected-font,
 long-table, long-code, and 63-message documents. Inspect actual PDFs and embedded fonts,

@@ -6,7 +6,10 @@ import { setupDom } from './helpers/dom.js';
 test('TOC lists the full branch and scrolls to the start of a matching mounted ID without a preview', async () => {
   const { cleanup } = setupDom();
   const conversation = JSON.parse(readFileSync(new URL('./fixtures/conversations/branched.json', import.meta.url)));
-  let parent = 'b3';
+  conversation.mapping.generated = { parent: 'b3', message: { id: 'generated', author: { role: 'tool' },
+    end_turn: null, status: 'finished_successfully', metadata: { image_gen_title: 'Synthetic image' },
+    content: { content_type: 'multimodal_text', parts: [{ content_type: 'image_asset_pointer', asset_pointer: 'sediment://file_SYNTHETIC' }] } } };
+  let parent = 'generated';
   for (let index = 0; index < 120; index += 1) {
     const id = `long-${index}`;
     conversation.mapping[id] = { parent, message: { id, author: { role: 'assistant' }, recipient: 'all',
