@@ -11,8 +11,8 @@ Each file carries a `_case` field describing what it exercises and the expected 
 |---|---|---|
 | `linear.json` | Plain user/assistant thread | Active branch `n1,n2,n3` |
 | `branched.json` | Regenerated turn (two children) | Active branch follows `current_node`; abandoned `a2` excluded |
-| `broken-parent.json` | Ancestor id missing from `mapping` | `activeBranch()` throws `conversation-broken-parent` → DOM fallback |
-| `cycle.json` | Parent cycle | `activeBranch()` throws `conversation-cycle` → DOM fallback |
+| `broken-parent.json` | Ancestor id missing from `mapping` | `activeBranch()` throws `conversation-broken-parent` → explicit export error |
+| `cycle.json` | Parent cycle | `activeBranch()` throws `conversation-cycle` → explicit export error |
 | `hidden-content.json` | system / `is_visually_hidden` / `*_editable_context` / `analysis` + `commentary` / `bio` + `web.search` recipients | Only `u1`, `a1`, `u2` survive the filter |
 | `multimodal-image.json` | `multimodal_text` parts: string + `{text,direction}` object + image pointer | Flatten all three; image → asset ref |
 | `code.json` | `content_type=code` with source in `content.text` | Read `.text` (not `parts`); fenced block |
@@ -23,5 +23,5 @@ Each file carries a `_case` field describing what it exercises and the expected 
 ## Coverage
 
 Covers branch, visibility, text, code, citation, image-pointer, and malformed-response
-cases. Canvas `/textdocs` and the DOM fallback's partial mounted window still need
-fixtures if those paths are implemented.
+cases. Canvas `/textdocs` remains unsupported. Unsupported content or a broken graph produces
+an error; the extension never substitutes a partial mounted DOM window.

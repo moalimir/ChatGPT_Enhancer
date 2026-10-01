@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { activeBranch, loadConversationFromApi, normalizeMessages } from '../src/export/core/conversation-source.js';
+import { activeBranch, loadConversationFromApi, normalizeMessages } from '../src/common/conversation-source.js';
 import { renderConversation } from '../src/export/core/render-conversation.js';
 import { serializeMessagesToMarkdown, serializeExportRootToPlainText } from '../src/export/utils/serialization.js';
 import { setupDom } from './helpers/dom.js';
@@ -41,13 +41,13 @@ test('API transcript renders every turn for visual and text export without runni
     markdown: index === 1 ? '# Heading\n\n```js\nconst x = 1;\n```\n\n<script>alert(1)</script>\n\n![remote](https://example.com/track)' : `Turn ${index}`,
     images: []
   }));
-  const root = renderConversation(messages, { labels: false });
+  const root = renderConversation(messages);
   assert.equal(root.children.length, 120);
   assert.equal(root.querySelectorAll('script').length, 0);
   assert.equal(root.querySelectorAll('img').length, 0);
   assert.equal(root.querySelectorAll('pre code').length, 1);
   assert.match(serializeExportRootToPlainText(root), /Turn 119/);
-  assert.match(serializeMessagesToMarkdown(messages), /### ChatGPT\n\n# Heading/);
+  assert.match(serializeMessagesToMarkdown(messages), /---\n\n# Heading/);
   cleanup();
 });
 

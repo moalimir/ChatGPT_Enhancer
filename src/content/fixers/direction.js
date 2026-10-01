@@ -1,8 +1,9 @@
 /**
  * Monitors and corrects text direction (RTL/LTR) for code blocks and mixed content.
- * KaTeX direction protection lives in KatexManager to avoid overlapping inline fixes.
+ * Host-rendered equations are excluded from text alignment.
  */
 
+import { blockDirection, DIRECTION_EXCLUSIONS } from '../../common/direction.js';
 import { DEFAULT_SETTINGS } from '../../common/config.js';
 import { SELECTORS, selectCodeNodes } from '../selectors.js';
 
@@ -13,10 +14,7 @@ const RESET_VALUES = {
   'text-align': 'left'
 };
 const TEXT_BLOCKS = '[data-markdown-text-style="assistant-message"] :is(p,h1,h2,h3,h4,h5,h6,li,blockquote,td,th), [data-user-message-bubble] [data-search-result-target]';
-const EXCLUDED_TEXT = 'code, pre, .katex, [data-math-source], [data-markdown-copy="code-block"], [data-markdown-copy="exclude"], .sr-only';
-const PERSIAN = /[\u0621-\u064A\u066E-\u06D3\u06FA-\u06FF]/g;
-const FIRST_PERSIAN = /^[\u0621-\u064A\u066E-\u06D3\u06FA-\u06FF]$/;
-const LATIN = /[A-Za-z]/g;
+
 
 let currentSettings = { ...DEFAULT_SETTINGS };
 
@@ -63,7 +61,7 @@ export function update(changes) {
   }
   const previous = { ...currentSettings };
   const next = { ...currentSettings };
-  ['enableFix', 'fixKatex', 'fixCode'].forEach((key) => {
+  ['enableFix', 'fixCode', 'alignPersian'].forEach((key) => {
     if (Object.prototype.hasOwnProperty.call(changes, key) && changes[key]) {
       next[key] = changes[key].newValue;
     }
@@ -152,22 +150,10 @@ function addBlockAndAncestors(block, blocks) {
 }
 
 function alignTextBlock(block) {
-  if (!(block instanceof HTMLElement) || block.closest(EXCLUDED_TEXT)) return;
-  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
-  let persian = 0;
-  let latin = 0;
-  let first = '';
-  while (walker.nextNode()) {
-    const textNode = walker.currentNode;
-    if (textNode.parentElement?.closest(EXCLUDED_TEXT)) continue;
-    const text = textNode.textContent || '';
-    persian += (text.match(PERSIAN) || []).length;
-    latin += (text.match(LATIN) || []).length;
-    if (!first) first = text.match(/[\u0621-\u064A\u066E-\u06D3\u06FA-\u06FFA-Za-z]/)?.[0] || '';
-  }
-  const rtl = persian > 0 && (persian >= latin || FIRST_PERSIAN.test(first));
-  block.classList.toggle('gpt-enhancer-text-rtl', rtl);
-  block.classList.toggle('gpt-enhancer-text-ltr', !rtl && latin > 0);
+  if (!(block instanceof HTMLElement) || block.closest(DIRECTION_EXCLUSIONS)) return;
+  const direction = currentSettings.alignPersian ? blockDirection(block) : 'auto';
+  block.classList.toggle('gpt-enhancer-text-rtl', direction === 'rtl');
+  block.classList.toggle('gpt-enhancer-text-ltr', direction === 'ltr');
 }
 
 function syncRootClasses() {

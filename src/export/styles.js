@@ -1,360 +1,54 @@
-/**
- * CSS styles injected into the export stage for consistent formatting across formats.
- */
-
-import {
-  EXPORT_ROOT_CLASS,
-  EXPORT_TURN_CLASS,
-  EXPORT_EQUATION_CLASS,
-  FONT_FAMILY_STACK,
-  DARK_TEXT_COLOR
-} from './constants.js';
-
 export const EXPORT_STYLE_BLOCK = `
-.${EXPORT_ROOT_CLASS} {
-  font-family: ${FONT_FAMILY_STACK};
-  color: ${DARK_TEXT_COLOR};
-  background: #ffffff;
-  padding: 32px;
-  box-sizing: border-box;
-  max-width: 672px;
-  margin: 0 auto;
-  line-height: 1.55;
-}
-.${EXPORT_ROOT_CLASS} *,
-.${EXPORT_ROOT_CLASS} *::before,
-.${EXPORT_ROOT_CLASS} *::after {
-  color: inherit !important;
-}
-.${EXPORT_ROOT_CLASS} h1,
-.${EXPORT_ROOT_CLASS} h2,
-.${EXPORT_ROOT_CLASS} h3,
-.${EXPORT_ROOT_CLASS} h4 {
-  color: #05061a;
-  font-weight: 600;
-}
-.${EXPORT_ROOT_CLASS} a {
-  color: #1c46d6 !important;
-  text-decoration: none;
-}
-.${EXPORT_ROOT_CLASS} a:hover {
-  text-decoration: underline;
-}
-.${EXPORT_TURN_CLASS} {
-  display: block;
-  padding: 20px 0;
-  border-bottom: 1px solid rgba(9, 10, 27, 0.08);
-  page-break-inside: auto;
-  break-inside: auto;
-}
-.${EXPORT_TURN_CLASS}:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.${EXPORT_ROOT_CLASS} pre {
-  background: rgba(13, 17, 38, 0.92);
-  color: #f5f6fb !important;
-  padding: 18px;
-  border-radius: 14px;
-  overflow: auto;
-  font-size: 13px;
-  page-break-inside: avoid;
-  break-inside: avoid;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-.${EXPORT_ROOT_CLASS} pre *,
-.${EXPORT_ROOT_CLASS} code,
-.${EXPORT_ROOT_CLASS} code * {
-  font-family: "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
-  color: inherit;
-}
-.${EXPORT_ROOT_CLASS} code:not(pre code) {
-  background: rgba(17, 20, 40, 0.08);
-  padding: 2px 4px;
-  border-radius: 6px;
-}
-.${EXPORT_ROOT_CLASS} [dir="rtl"]:not(pre):not(code) {
-  direction: rtl;
-  unicode-bidi: isolate;
-  text-align: right;
-  letter-spacing: normal !important;
-  word-break: normal !important;
-  overflow-wrap: normal !important;
-}
-.${EXPORT_ROOT_CLASS} [dir="ltr"] {
-  direction: ltr;
-  unicode-bidi: isolate;
-  letter-spacing: normal !important;
-  word-break: normal !important;
-  overflow-wrap: normal !important;
-}
-.${EXPORT_ROOT_CLASS} .katex {
-  direction: ltr !important;
-  unicode-bidi: normal !important;
-  text-align: left !important;
-}
-.${EXPORT_ROOT_CLASS} .katex * {
-  direction: ltr !important;
-  unicode-bidi: normal !important;
-}
-.${EXPORT_ROOT_CLASS} .katex-display {
-  text-align: center !important;
-  margin: 16px auto;
-}
-.${EXPORT_ROOT_CLASS} .katex-display > .katex {
-  text-align: center !important;
-}
-.${EXPORT_ROOT_CLASS} .katex {
-  vertical-align: -0.05em !important;
-}
-.${EXPORT_ROOT_CLASS} img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-.${EXPORT_ROOT_CLASS} table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-bottom: 16px;
-  break-inside: avoid;
-  page-break-inside: avoid;
-  table-layout: fixed;
-  zoom: 0.85;
-  font-size: 0.9em;
-}
-.${EXPORT_ROOT_CLASS} th,
-.${EXPORT_ROOT_CLASS} td {
-  border: 1px solid rgba(12, 14, 27, 0.16);
-  padding: 8px 10px;
-  text-align: left;
-  break-inside: avoid;
-  page-break-inside: avoid;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-  max-width: 100%;
-}
-
-.${EXPORT_ROOT_CLASS} td pre,
-.${EXPORT_ROOT_CLASS} th pre {
-  white-space: pre-wrap !important;
-  word-break: break-all !important;
-}
-
-.${EXPORT_ROOT_CLASS} table .katex {
-  font-size: 0.9em !important;
-}
-.${EXPORT_ROOT_CLASS} p {
-  margin: 0 0 12px;
-}
-.${EXPORT_ROOT_CLASS} p:last-child {
-  margin-bottom: 0;
-}
-.${EXPORT_EQUATION_CLASS} {
-  display: inline-block;
-  vertical-align: middle;
-  direction: ltr !important;
-  unicode-bidi: normal !important;
-  text-align: left !important;
-}
-@media print {
-  .${EXPORT_ROOT_CLASS} .katex {
-    display: inline-flex !important;
-    align-items: center;
-    vertical-align: -0.05em !important;
-  }
-  .${EXPORT_ROOT_CLASS} {
-    font-kerning: normal !important;
-    font-variant-ligatures: common-ligatures contextual !important;
-    font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1 !important;
-    font-variation-settings: "wght" 400 !important;
-    font-synthesis: none !important;
-    text-rendering: optimizeLegibility !important;
-  }
-  .${EXPORT_ROOT_CLASS} .katex-display > .katex {
-    display: block !important;
-    align-items: initial;
-    vertical-align: baseline !important;
-    text-align: center !important;
-  }
-  .${EXPORT_ROOT_CLASS} .katex-display {
-    text-align: center !important;
-    margin: 16px auto;
-  }
-  .${EXPORT_ROOT_CLASS} b,
-  .${EXPORT_ROOT_CLASS} strong {
-    font-weight: 700 !important;
-    font-variation-settings: "wght" 700 !important;
-    font-synthesis: none !important;
-    letter-spacing: 0.05px !important;
-  }
-}
+.gpt-export-root { font-family: var(--gpt-export-font, "Inter", "Vazirmatn", sans-serif);
+  color: #202124; background: #fff; font-size: 11.5pt; line-height: 1.65; overflow-wrap: break-word; }
+.gpt-export-root * { box-sizing: border-box; }
+.gpt-export-turn + .gpt-export-turn { border-top: 1px solid #d8dadd; margin-top: 20pt; padding-top: 20pt; }
+.gpt-export-root p { margin: 0 0 9pt; orphans: 3; widows: 3; }
+.gpt-export-root h1 { font-size: 1.65em; }
+.gpt-export-root h2 { font-size: 1.35em; }
+.gpt-export-root h3 { font-size: 1.15em; }
+.gpt-export-root h1,.gpt-export-root h2,.gpt-export-root h3,
+.gpt-export-root h4,.gpt-export-root h5,.gpt-export-root h6 {
+  line-height: 1.35; margin: 16pt 0 8pt; break-after: avoid; }
+.gpt-export-body > :first-child { margin-top: 0; }
+.gpt-export-root a { color: #254f8a; text-decoration: underline; }
+.gpt-export-root [dir="rtl"] { direction: rtl; text-align: right; unicode-bidi: isolate; }
+.gpt-export-root [dir="ltr"] { direction: ltr; text-align: left; unicode-bidi: isolate; }
+.gpt-export-root pre,.gpt-export-root code { font-family: Menlo, Consolas, "Courier New", monospace;
+  direction: ltr; unicode-bidi: isolate; text-align: left; font-size: .85em; }
+.gpt-export-root pre { background: #f5f7fa; color: #243348; border: 1px solid #e3e8ef;
+  border-inline-start: 3pt solid #8b9aad; padding: 10pt 12pt;
+  border-radius: 5pt; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+.gpt-export-root pre code { font-size: inherit; }
+.gpt-export-root code:not(pre code) { background: #f1f2f3; padding: 1pt 3pt; border-radius: 3pt; }
+.gpt-export-root blockquote { border-inline-start: 3pt solid #d8dadd; padding-inline-start: 12pt; margin: 10pt 0; }
+.gpt-export-root ul,.gpt-export-root ol { padding-inline: 22pt; margin-block: 8pt; }
+.gpt-export-root li { margin-block: 3pt; }
+.gpt-export-root table { width: 100%; border-collapse: collapse; font-size: .9em; margin-block: 12pt; }
+.gpt-export-root th,.gpt-export-root td { border-bottom: 1px solid #d8dadd; padding: 6pt 8pt;
+  vertical-align: top; overflow-wrap: anywhere; }
+.gpt-export-root th { background: #f4f6f8; border-bottom: 1.5pt solid #b9c2ce; }
+.gpt-export-root tbody tr:nth-child(even) { background: #fafbfc; }
+.gpt-export-root thead { display: table-header-group; }
+.gpt-export-root tr { break-inside: avoid; }
+.gpt-export-root img { max-width: 100%; max-height: 240mm; height: auto; object-fit: contain; }
+.gpt-export-root .katex { unicode-bidi: isolate; }
+.gpt-export-root .katex-display { text-align: center; margin: 12pt 0; }
+.gpt-export-root .katex-display > .katex { text-align: center; }
+.gpt-export-root .gpt-export-native-math math { font-family: math; }
+.gpt-export-root .gpt-export-native-math mtext { font-family: var(--gpt-export-font); }
+.gpt-export-root .gpt-export-native-math math[display="block"] { margin: 12pt 0; }
+.gpt-export-math { break-inside: avoid; overflow-wrap: normal; }
+.gpt-export-root hr { border: 0; border-top: 1px solid #d8dadd; margin-block: 16pt; }
+.gpt-export-equation { vertical-align: middle; }
 `;
 
-export const DOCX_EXPORT_STYLE_BLOCK = `
-@page {
-  margin: 1in;
+export const PRINT_STYLE_BLOCK = `
+@page { size: A4; margin: 18mm;
+  @bottom-center { content: counter(page); font: 9pt sans-serif; color: #73777d; }
 }
-body {
-  font-family: ${FONT_FAMILY_STACK};
-  color: ${DARK_TEXT_COLOR};
-  background: #ffffff;
-  margin: 0;
-}
-.${EXPORT_ROOT_CLASS} {
-  padding: 24px 32px;
-  box-sizing: border-box;
-  max-width: 780px;
-  margin: 0 auto;
-  line-height: 1.5;
-}
-.${EXPORT_ROOT_CLASS} *,
-.${EXPORT_ROOT_CLASS} *::before,
-.${EXPORT_ROOT_CLASS} *::after {
-  color: inherit !important;
-}
-.${EXPORT_TURN_CLASS} {
-  display: block;
-  padding: 18px 0;
-  border-bottom: 1px solid #d0d3e7;
-}
-.${EXPORT_TURN_CLASS}:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.${EXPORT_ROOT_CLASS} h1,
-.${EXPORT_ROOT_CLASS} h2,
-.${EXPORT_ROOT_CLASS} h3,
-.${EXPORT_ROOT_CLASS} h4,
-.${EXPORT_ROOT_CLASS} h5,
-.${EXPORT_ROOT_CLASS} h6 {
-  color: #05061a;
-  font-weight: 600;
-  margin: 0 0 12px;
-}
-.${EXPORT_ROOT_CLASS} p {
-  margin: 0 0 12px;
-}
-.${EXPORT_ROOT_CLASS} a {
-  color: #1c46d6 !important;
-  text-decoration: underline;
-}
-.${EXPORT_ROOT_CLASS} pre {
-  background: #101327;
-  color: #f5f6fb !important;
-  padding: 18px;
-  border-radius: 10px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-  overflow-x: auto;
-  font-size: 13px;
-  line-height: 1.55;
-}
-.${EXPORT_ROOT_CLASS} .gpt-export-metadata {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-  font-size: 0.85rem;
-  color: #5b6078;
-}
-.${EXPORT_ROOT_CLASS} .gpt-export-metadata__item {
-  min-width: 160px;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.35;
-}
-.${EXPORT_ROOT_CLASS} .gpt-export-metadata__label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin-bottom: 2px;
-  color: #1f1f3a;
-}
-.${EXPORT_ROOT_CLASS} .gpt-export-metadata__value {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #111222;
-  word-break: break-word;
-}
-.${EXPORT_ROOT_CLASS} .gpt-export-metadata__value a {
-  color: inherit;
-  text-decoration: underline;
-}
-.${EXPORT_ROOT_CLASS} pre *,
-.${EXPORT_ROOT_CLASS} code,
-.${EXPORT_ROOT_CLASS} code * {
-  font-family: "Consolas", "Courier New", monospace;
-  color: inherit;
-}
-.${EXPORT_ROOT_CLASS} code:not(pre code) {
-  background: #eef1ff;
-  padding: 2px 4px;
-  border-radius: 6px;
-}
-.${EXPORT_ROOT_CLASS} blockquote {
-  border-left: 4px solid #d9dcef;
-  padding-left: 16px;
-  margin: 0 0 16px;
-  color: #111222;
-}
-.${EXPORT_ROOT_CLASS} ul,
-.${EXPORT_ROOT_CLASS} ol {
-  margin: 0 0 16px 24px;
-  padding: 0;
-}
-.${EXPORT_ROOT_CLASS} table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 16px;
-}
-.${EXPORT_ROOT_CLASS} th,
-.${EXPORT_ROOT_CLASS} td {
-  border: 1px solid #cdd2e5;
-  padding: 8px 10px;
-  text-align: left;
-  vertical-align: top;
-}
-.${EXPORT_ROOT_CLASS} img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 12px 0;
-}
-.${EXPORT_ROOT_CLASS} .katex-display {
-  text-align: center;
-  width: 75%;
-  margin: 20px auto 12px;
-  padding: 6px 0;
-  display: block;
-}
-.${EXPORT_ROOT_CLASS} .katex-display > .${EXPORT_EQUATION_CLASS} {
-  display: block;
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 4px 0;
-}
-.${EXPORT_ROOT_CLASS} .katex-display + .katex-display {
-  margin-top: 28px;
-}
-.${EXPORT_ROOT_CLASS} hr {
-  border: none;
-  border-top: 1px solid #d0d3e7;
-  margin: 24px 0;
-}
-.${EXPORT_EQUATION_CLASS} {
-  display: inline-block;
-  vertical-align: middle;
-  direction: ltr !important;
-  unicode-bidi: normal !important;
-  text-align: left !important;
-  white-space: pre-wrap;
-  font-family: "Cambria Math", "Consolas", "Courier New", monospace;
-  font-size: 0.95em;
-  line-height: 1.25;
-}
+html,body { height: auto; overflow: visible; margin: 0; background: #fff; }
+body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 `;
+
+export const DOCX_EXPORT_STYLE_BLOCK = EXPORT_STYLE_BLOCK;

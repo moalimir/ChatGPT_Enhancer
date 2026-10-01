@@ -994,22 +994,6 @@ function buildMarkdownMetadata() {
   return lines.join('\n\n');
 }
 
-function formatRoleHeading(role, index) {
-  const normalized = typeof role === 'string' ? role.toLowerCase() : '';
-  let label;
-  if (normalized === 'user') {
-    label = 'User';
-  } else if (normalized === 'assistant') {
-    label = 'ChatGPT';
-  } else if (normalized) {
-    label = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-  }
-  if (!label) {
-    label = `Message ${index + 1}`;
-  }
-  return `### ${escapeMarkdownText(label)}`;
-}
-
 export function serializeExportRootToMarkdown(root) {
   const parts = [];
   const metadata = buildMarkdownMetadata();
@@ -1018,7 +1002,7 @@ export function serializeExportRootToMarkdown(root) {
   }
 
   const turns = Array.from(root?.children || []);
-  turns.forEach((turn, index) => {
+  turns.forEach((turn) => {
     if (!turn || turn.nodeType !== Node.ELEMENT_NODE) {
       return;
     }
@@ -1026,20 +1010,19 @@ export function serializeExportRootToMarkdown(root) {
     if (!body) {
       return;
     }
-    const heading = formatRoleHeading(detectTurnRole(turn), index);
-    parts.push(heading, body);
+    parts.push(body);
   });
 
-  return parts.join('\n\n');
+  return parts.join('\n\n---\n\n');
 }
 
 export function serializeMessagesToMarkdown(messages) {
   const parts = [buildMarkdownMetadata()];
-  messages.forEach((message, index) => {
+  messages.forEach((message) => {
     const body = message.markdown.replace(/\uE100IMG\d+\uE101/g, '[Image attachment]').trim();
-    if (body) parts.push(formatRoleHeading(message.role, index), body);
+    if (body) parts.push(body);
   });
-  return parts.join('\n\n');
+  return parts.join('\n\n---\n\n');
 }
 
 function serializeNodeToMarkdown(node, context) {
@@ -1571,7 +1554,7 @@ export function serializeExportRootToPlainText(root) {
   }
 
   const turns = Array.from(root?.children || []);
-  turns.forEach((turn, index) => {
+  turns.forEach((turn) => {
     if (!turn || turn.nodeType !== Node.ELEMENT_NODE) {
       return;
     }
@@ -1580,10 +1563,10 @@ export function serializeExportRootToPlainText(root) {
     if (!body) {
       return;
     }
-    parts.push(`${formatRolePlainLabel(detectTurnRole(turn), index)}:`, body);
+    parts.push(body);
   });
 
-  return parts.join('\n\n');
+  return parts.join('\n\n────────────────────\n\n');
 }
 
 function buildPlainTextMetadata() {
@@ -1596,18 +1579,4 @@ function buildPlainTextMetadata() {
   }
   lines.push(`Exported: ${exportedAt}`);
   return lines.join('\n');
-}
-
-function formatRolePlainLabel(role, index) {
-  const normalized = typeof role === 'string' ? role.toLowerCase() : '';
-  if (normalized === 'user') {
-    return 'User';
-  }
-  if (normalized === 'assistant') {
-    return 'ChatGPT';
-  }
-  if (normalized) {
-    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-  }
-  return `Message ${index + 1}`;
 }

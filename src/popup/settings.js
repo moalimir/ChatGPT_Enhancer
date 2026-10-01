@@ -204,9 +204,8 @@ export function attachSettingsListeners(controls, deps) {
 
   Object.entries({
     enableFix: controls.enableFix,
-    fixKatex: controls.fixKatex,
     fixCode: controls.fixCode,
-    copyKatex: controls.copyKatex,
+    alignPersian: controls.alignPersian,
     exportQuickAction: controls.exportQuickAction,
     tableOfContents: controls.tableOfContents
   }).forEach(([key, input]) => {
@@ -348,15 +347,10 @@ export function applySettingsToUI(controls, settings, deps) {
   if (controls.enableFix) {
     controls.enableFix.checked = nextSettings.enableFix;
   }
-  if (controls.fixKatex) {
-    controls.fixKatex.checked = nextSettings.fixKatex;
-  }
   if (controls.fixCode) {
     controls.fixCode.checked = nextSettings.fixCode;
   }
-  if (controls.copyKatex) {
-    controls.copyKatex.checked = nextSettings.copyKatex;
-  }
+  if (controls.alignPersian) controls.alignPersian.checked = nextSettings.alignPersian;
   if (controls.exportQuickAction) {
     controls.exportQuickAction.checked = nextSettings.exportQuickAction;
   }
@@ -389,9 +383,8 @@ export function applySettingsToUI(controls, settings, deps) {
 
   const dependentsDisabled = !nextSettings.enableFix;
   [
-    controls.fixKatex,
     controls.fixCode,
-    controls.copyKatex,
+    controls.alignPersian,
     controls.exportQuickAction,
     controls.tableOfContents
   ].forEach((input) => {

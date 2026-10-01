@@ -12,7 +12,6 @@ import {
 } from './theme/index.js';
 import { DirectionFixer } from './fixers/direction.js';
 import { FontManager } from './fonts/index.js';
-import { KatexManager } from './fixers/katex.js';
 import { getMessageSelector } from './selectors.js';
 import { QuickActionManager } from './quick-actions/index.js';
 import { TocManager } from './toc.js';
@@ -69,7 +68,6 @@ function initializeManagers(settings) {
   }
   DirectionFixer.init(settings);
   FontManager.init(settings);
-  KatexManager.init(settings);
   QuickActionManager.init(settings);
   TocManager.init(settings);
   syncFixerObserver();
@@ -117,7 +115,6 @@ function handleStorageChanges(changes, areaName) {
   }
   DirectionFixer.update(picked);
   FontManager.update(picked);
-  KatexManager.update(picked);
   QuickActionManager.update(picked);
   TocManager.update(picked);
   syncFixerObserver();
@@ -131,16 +128,17 @@ function extractRelevantChanges(changes) {
 
   const keys = [
     'enableFix',
-    'fixKatex',
     'fixCode',
+    'alignPersian',
     'theme',
     'fontsEnabled',
     'fontEnglish',
     'fontPersian',
-    'copyKatex',
     'exportQuickAction',
     'exportQuickActionPosition',
     'tableOfContents',
+    'tocPosition',
+    'tocSize',
     'exportFormat',
     'exportScope'
   ];
@@ -243,7 +241,7 @@ function buildExportToastMessage(status, detail) {
     case 'cleanup':
       return null;
     case 'aborted':
-      return 'Export stopped (tab hidden or closed).';
+      return 'Export stopped (page closed).';
     case 'error': {
       const raw = (detail && detail.message) || '';
       if (raw.includes('export-interrupted')) {
@@ -427,7 +425,6 @@ function handleFixerMutations(mutations) {
   if (typeof DirectionFixer.handleMutations === 'function') {
     DirectionFixer.handleMutations(mutations);
   }
-  KatexManager.handleMutations(mutations);
   TocManager.handleMutations(mutations);
 }
 

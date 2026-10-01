@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS } from './config.js';
 
 const RETRY_ATTEMPTS = 1;
 const RETRY_DELAY_MS = 50;
-const LEGACY_SETTING_KEYS = ['fixTables'];
+const LEGACY_SETTING_KEYS = ['fixTables', 'fixKatex', 'copyKatex'];
 
 function getChromeStorage(preferSync = true) {
   if (typeof chrome === 'undefined' || !chrome.storage) {

@@ -7,8 +7,6 @@
  * - Provide a timeout-bound request/response channel for DOCX generation.
  */
 
-import { VAZIRMATN_FONT_PATH } from '../constants.js';
-import { resolveRuntimeUrl } from './download.js';
 
 const DOCX_SCRIPT_ATTR = 'data-gpt-enhancer-docx';
 const DOCX_RUNNER_ATTR = 'data-gpt-enhancer-docx-runner';
@@ -16,7 +14,6 @@ const DOCX_REQUEST_EVENT = 'GPT_ENHANCER_DOCX_REQUEST';
 const DOCX_RESULT_EVENT = 'GPT_ENHANCER_DOCX_RESULT';
 
 let docxRunnerReadyPromise = null;
-let exportFontRegistrationPromise = null;
 
 export function ensureDocxRunnerLoaded() {
   if (docxRunnerReadyPromise) {
@@ -129,65 +126,4 @@ function getExtensionUrl(path) {
     return chrome.runtime.getURL(path);
   }
   return path;
-}
-
-export async function ensureExportFontsLoaded() {
-  if (!document.fonts || typeof document.fonts.load !== 'function') {
-    return;
-  }
-
-  await registerExportFonts();
-
-  try {
-    await Promise.all([document.fonts.load('400 16px "Vazirmatn"'), document.fonts.load('700 16px "Vazirmatn"')]);
-  } catch (error) {
-    /* ignore */
-  }
-
-  if (typeof document.fonts.ready === 'object' && typeof document.fonts.ready.then === 'function') {
-    try {
-      await document.fonts.ready;
-    } catch (error) {
-      /* ignore */
-    }
-  }
-}
-
-function registerExportFonts() {
-  if (exportFontRegistrationPromise) {
-    return exportFontRegistrationPromise;
-  }
-  if (!document.fonts || typeof document.fonts.check !== 'function' || typeof FontFace !== 'function') {
-    exportFontRegistrationPromise = Promise.resolve();
-    return exportFontRegistrationPromise;
-  }
-  if (document.fonts.check('16px "Vazirmatn"')) {
-    exportFontRegistrationPromise = Promise.resolve();
-    return exportFontRegistrationPromise;
-  }
-
-  exportFontRegistrationPromise = (async () => {
-    const fontUrl = resolveRuntimeUrl(VAZIRMATN_FONT_PATH);
-    if (!fontUrl) {
-      return;
-    }
-    try {
-      const response = await fetch(fontUrl);
-      if (!response.ok) {
-        throw new Error(`Font request failed: ${response.status}`);
-      }
-      const buffer = await response.arrayBuffer();
-      const fontFace = new FontFace('Vazirmatn', buffer, {
-        style: 'normal',
-        weight: '100 900',
-        display: 'swap'
-      });
-      await fontFace.load();
-      document.fonts.add(fontFace);
-    } catch (error) {
-      /* ignore */
-    }
-  })();
-
-  return exportFontRegistrationPromise;
 }

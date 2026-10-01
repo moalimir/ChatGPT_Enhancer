@@ -10,7 +10,7 @@ function createTurn(role = 'user') {
   return turn;
 }
 
-test('txt export labels roles and emits plain text without markdown syntax', () => {
+test('txt export separates messages with dividers and emits plain text without markdown syntax', () => {
   const { cleanup } = setupDom();
   document.title = 'Txt Test';
 
@@ -26,9 +26,10 @@ test('txt export labels roles and emits plain text without markdown syntax', () 
   const output = serializeExportRootToPlainText(root);
 
   assert.ok(output.startsWith('Txt Test'));
-  assert.ok(output.includes('User:'));
+  assert.equal(output.includes('User:'), false);
+  assert.ok(output.includes('────────────────────'));
   assert.ok(output.includes('Hello world'));
-  assert.ok(output.includes('ChatGPT:'));
+  assert.equal(output.includes('ChatGPT:'), false);
   assert.ok(output.includes('Section'));
   assert.ok(output.includes('Answer text'));
   assert.ok(output.includes('const x = 1;'));
@@ -54,7 +55,7 @@ test('txt export skips empty turns', () => {
   const output = serializeExportRootToPlainText(root);
 
   assert.ok(output.includes('Real content'));
-  assert.equal((output.match(/ChatGPT:/g) || []).length, 1);
+  assert.equal((output.match(/Real content/g) || []).length, 1);
   assert.equal(output.includes('User:'), false);
 
   cleanup();

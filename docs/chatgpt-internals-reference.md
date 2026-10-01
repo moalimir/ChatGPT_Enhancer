@@ -181,9 +181,7 @@ with `!important`, grouped:
 5. (Optional) motion: shorten/disable `--spring-*` / `--easing-*` durations for a "reduce-motion / snappy" mode.
 
 This is materially cleaner than the extension's current per-element CSS, and it's the same
-surface ChatGPT itself themes against. (See also the existing oklch-normalization in
-`src/export/core/normalizer.js` — for *display* theming you usually don't need it, only for
-export rasterization.)
+surface ChatGPT itself themes against. Exports now render their own document and styles; they do not copy the live page's colors.
 
 ### 3.4 Fonts shipped by ChatGPT
 

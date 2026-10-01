@@ -2,6 +2,7 @@
  * Handles injection and application of custom fonts for English and Persian text.
  */
 
+import { FONT_FACE_DEFINITIONS, selectedFonts } from '../../common/fonts.js';
 import { DEFAULT_SETTINGS, FONT_STACKS } from '../../common/config.js';
 import { SUPPORTED_LANGUAGES, detectLanguage } from '../../common/languages.js';
 
@@ -14,20 +15,7 @@ let fontSyncInterval = null;
 let cachedSettings = { ...DEFAULT_SETTINGS };
 let updateTimeout = null;
 const DEBOUNCE_DELAY = 100;
-const FONT_FACE_DEFINITIONS = [
-  { family: 'Inter', path: 'assets/fonts/Inter-Variable-latin.woff2', weight: '100 900' },
-  { family: 'Source Sans 3', path: 'assets/fonts/SourceSans3-Variable-latin.woff2', weight: '200 900' },
-  { family: 'Roboto', path: 'assets/fonts/Roboto-Variable-latin.woff2', weight: '100 900' },
-  { family: 'Noto Sans', path: 'assets/fonts/NotoSans-Variable-latin.woff2', weight: '100 900' },
-  { family: 'Work Sans', path: 'assets/fonts/WorkSans-Variable-latin.woff2', weight: '200 800' },
-  { family: 'Vazirmatn', path: 'assets/fonts/Vazirmatn-VF.woff2', weight: '100 900' },
-  { family: 'Noto Sans Arabic', path: 'assets/fonts/NotoSansArabic-400-600.woff2', weight: '400 600' },
-  { family: 'Noto Naskh Arabic', path: 'assets/fonts/NotoNaskhArabic-400-600.woff2', weight: '400 600' },
-  { family: 'Sahel', path: 'assets/fonts/Sahel-Regular.woff2', weight: '400' },
-  { family: 'Sahel', path: 'assets/fonts/Sahel-Bold.woff2', weight: '700' },
-  { family: 'Shabnam', path: 'assets/fonts/Shabnam-Regular.woff2', weight: '400' },
-  { family: 'Shabnam', path: 'assets/fonts/Shabnam-Bold.woff2', weight: '700' }
-];
+
 
 export function isActive(settings = cachedSettings) {
   return Boolean(settings && settings.enableFix && settings.fontsEnabled);
@@ -95,7 +83,7 @@ export function applyFontsToMessage(element, fontSettings, options = {}) {
       element.classList.add(`chatgpt-font-${langConfig.id}`);
       const specificFont = fontSettings?.[langConfig.id];
       if (specificFont) {
-        finalFontStack = englishFont ? `${englishFont}, ${specificFont}` : specificFont;
+        finalFontStack = selectedFonts(cachedSettings).stack;
         element.style.setProperty(langConfig.variable, finalFontStack);
       }
     }

@@ -94,9 +94,8 @@ const PIN_BANNER_STORAGE_KEY = 'chatgptEnhancerPinBannerSeen';
 
 document.addEventListener('DOMContentLoaded', () => {
   controls.enableFix = document.getElementById('toggle-enable');
-  controls.fixKatex = document.getElementById('toggle-katex');
   controls.fixCode = document.getElementById('toggle-code');
-  controls.copyKatex = document.getElementById('toggle-copy');
+  controls.alignPersian = document.getElementById('toggle-persian-align');
   controls.exportQuickAction = document.getElementById('toggle-export-quick-action');
   controls.tableOfContents = document.getElementById('toggle-toc');
   controls.refreshBtn = document.getElementById('refresh-btn');

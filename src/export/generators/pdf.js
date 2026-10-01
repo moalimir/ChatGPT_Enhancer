@@ -1,61 +1,51 @@
-/** Print the prepared export in its own document, away from ChatGPT's print CSS. */
+import { PRINT_STYLE_BLOCK } from '../styles.js';
 
-import { EXPORT_STYLE_BLOCK } from '../styles.js';
-
-const PRINT_STYLE = `
-  @page { margin: 0.6in 0.4in; }
-  html, body { height: auto !important; overflow: visible !important; }
-  body { margin: 0; background: #fff; }
-  .gpt-export-root pre {
-    background-color: #000 !important;
-    color: #fff !important;
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-`;
-
-export async function exportAsPdf(root) {
-  if (!root) throw new Error('PDF export content is unavailable.');
-
-  const frame = document.createElement('iframe');
-  frame.title = 'GPT Enhancer PDF export';
-  frame.setAttribute('aria-hidden', 'true');
-  frame.style.cssText = 'position:fixed;left:0;top:0;width:800px;height:600px;opacity:0;pointer-events:none;z-index:-1;border:0';
-  frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>${EXPORT_STYLE_BLOCK}${PRINT_STYLE}</style></head><body></body></html>`;
-
-  await new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => reject(new Error('PDF print document did not load.')), 10000);
-    frame.onload = () => { window.clearTimeout(timeout); resolve(); };
-    frame.onerror = () => { window.clearTimeout(timeout); reject(new Error('PDF print document failed to load.')); };
-    document.body.appendChild(frame);
-  }).catch((error) => {
-    frame.remove();
-    throw error;
+export function fitEquationsForPrint(root) {
+  const printWindow = root.ownerDocument.defaultView;
+  // Fit unusually wide display equations without cropping them at the page edge.
+  root.querySelectorAll('.katex').forEach((math) => {
+    // The HTML wrapper is constrained to the page while its children can overflow.
+    // Measuring its rectangle misses that overflow and makes Chrome shrink every page.
+    const width = Math.max(math.scrollWidth, math.querySelector('.katex-html')?.scrollWidth || 0,
+      math.querySelector('math')?.scrollWidth || 0);
+    const block = math.closest('.gpt-export-math,td,th,p,h1,h2,h3,h4,h5,h6') || root;
+    const available = Math.min(block.clientWidth, root.getBoundingClientRect().width) - 1;
+    if (width > available && available > 0) {
+      math.style.fontSize = `${parseFloat(printWindow.getComputedStyle(math).fontSize) * available / width}px`;
+    }
   });
+}
 
-  const printWindow = frame.contentWindow;
-  frame.contentDocument.body.appendChild(frame.contentDocument.adoptNode(root));
-  void frame.contentDocument.body.offsetHeight;
-
-  return new Promise((resolve, reject) => {
+// The caller has already rendered the content and awaited this document's fonts/images.
+export async function exportAsPdf(root, _root, { signal } = {}) {
+  const printDocument = root.ownerDocument;
+  const printWindow = printDocument.defaultView;
+  const style = printDocument.createElement('style');
+  style.textContent = PRINT_STYLE_BLOCK;
+  printDocument.head.appendChild(style);
+  root.style.maxWidth = '174mm';
+  root.style.width = '100%';
+  fitEquationsForPrint(root);
+  void printDocument.body.offsetHeight;
+  await new Promise((resolve, reject) => {
     let settled = false;
     const finish = (error) => {
       if (settled) return;
       settled = true;
-      window.clearTimeout(timeout);
+      clearTimeout(timeout);
       printWindow.removeEventListener('afterprint', onAfterPrint);
-      frame.remove();
-      if (error) reject(error);
-      else resolve();
+      signal?.removeEventListener('abort', onAbort);
+      error ? reject(error) : resolve();
     };
     const onAfterPrint = () => finish();
-    const timeout = window.setTimeout(() => finish(new Error('PDF print timed out.')), 120000);
+    const onAbort = () => finish(new Error('Export was cancelled.'));
+    const timeout = setTimeout(() => finish(new Error('PDF print timed out.')), 120000);
     printWindow.addEventListener('afterprint', onAfterPrint, { once: true });
+    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) return onAbort();
     try {
       printWindow.focus();
       printWindow.print();
-    } catch (error) {
-      finish(error);
-    }
+    } catch (error) { finish(error); }
   });
 }

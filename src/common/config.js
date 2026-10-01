@@ -4,14 +4,15 @@
 
 export const DEFAULT_SETTINGS = {
   enableFix: true,
-  fixKatex: true,
   fixCode: true,
-  copyKatex: true,
+  alignPersian: true,
   exportFormat: 'pdf',
   exportScope: 'all',
   exportQuickAction: false,
   exportQuickActionPosition: null,
   tableOfContents: true,
+  tocPosition: null,
+  tocSize: null,
   theme: 'original',
   fontsEnabled: false,
   fontEnglish: 'inter',
