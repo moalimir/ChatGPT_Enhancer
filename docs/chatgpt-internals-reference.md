@@ -5,10 +5,8 @@
 > private REST API, client-side storage, and the fonts it ships. It exists so GPT Enhancer
 > features can be built against ground truth instead of guesswork.
 >
-> **Companion doc.** [chatgpt-internal-api.md](./chatgpt-internal-api.md) is the *strategy/
-> rollout* plan for the Export + TOC hybrid data layer. **This** file is the *reference*:
-> what exists and how it behaves. The last section maps these internals to concrete
-> feature ideas.
+> **Historical reference.** These observations predate the current refactor. Use the
+> [active plan](./refactor-plan.md) for scope and recheck every private contract live.
 >
 > **Status.** Observed against a logged-in session on 2026-06-30 (desktop + mobile-fallback
 > render). Everything here is a private implementation detail of ChatGPT's web app, not a
@@ -200,9 +198,8 @@ feature. ChatGPT also exposes a font/contrast preference UI of its own.
 
 ## 4. Private REST API
 
-Same-origin from a content script. **This section is the canonical data-model reference**
-for the project — the rollout plan in [chatgpt-internal-api.md](./chatgpt-internal-api.md)
-links here rather than restating it, so the two files can't drift.
+Observed in the page context on 2026-06-30. Content-script access still needs a live check.
+This section records the historical data model, not a supported API contract.
 
 ### 4.1 Auth
 - `GET /api/auth/session` → `{ accessToken, user, expires }` (read same-origin).

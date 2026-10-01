@@ -1,9 +1,9 @@
-# Conversation fixtures (Phase 0)
+# Conversation fixtures
 
 Synthetic, schema-accurate `/backend-api/conversation/<id>` responses. **No real data** —
 hand-authored to the verified shape ([reference §4](../../docs/chatgpt-internals-reference.md#4-private-rest-api)),
-so there is nothing to sanitize and no privacy risk. These are the inputs the Phase 1
-transcript normalizer, active-branch walk, and visibility filter are tested against.
+so there is nothing to sanitize and no privacy risk. These are inputs for the
+transcript normalizer, active-branch walk, and visibility filter.
 
 Each file carries a `_case` field describing what it exercises and the expected outcome.
 
@@ -20,10 +20,8 @@ Each file carries a `_case` field describing what it exercises and the expected 
 | `streaming-incomplete.json` | Trailing turn `status=in_progress`, `end_turn=false` | Mark incomplete / exclude; revalidate after settle |
 | `empty-and-unknown.json` | Empty parts + unknown content type + unknown object part | Drop empties; skip+warn unknowns; never stringify opaque data |
 
-## Coverage vs. the rollout plan
+## Coverage
 
-Covers the unit-fixture list in
-[chatgpt-internal-api.md §15](../../docs/chatgpt-internal-api.md). Not yet covered (deferred,
-needs real samples — see [reference §4.8](../../docs/chatgpt-internals-reference.md#48-still-unverified-re-verify-before-depending-on-these)):
-Canvas `/textdocs`, and the DOM-fallback "partial mounted window" case (a DOM fixture, added
-with the `dom-source` work in Phase 1).
+Covers branch, visibility, text, code, citation, image-pointer, and malformed-response
+cases. Canvas `/textdocs` and the DOM fallback's partial mounted window still need
+fixtures if those paths are implemented.

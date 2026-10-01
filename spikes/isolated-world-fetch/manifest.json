@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Phase0 — Isolated-World Fetch Spike",
+  "name": "GPT Enhancer Live Contract Probe",
   "version": "0.0.1",
-  "description": "Throwaway: verifies a content-script (isolated world) can call ChatGPT's private API with the SAME manifest shape as GPT Enhancer (no host_permissions).",
+  "description": "Throwaway structural DOM and isolated-world API probe. No host permissions.",
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*"],

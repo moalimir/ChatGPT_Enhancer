@@ -1,11 +1,8 @@
 # ChatGPT Live Audit — 2026-07-09 (refactor evidence)
 
-> **Purpose.** Ground-truth findings from a live, logged-in inspection of `chatgpt.com`,
-> gathered to drive the Export + TOC refactor. Complements the analysis docs
-> ([internals-reference](./chatgpt-internals-reference.md),
-> [hybrid strategy](./chatgpt-internal-api.md),
-> [refactor plan](./chatgpt-data-layer-refactor-plan.md),
-> [phase-0](./phase-0-findings.md)) with what the **current** build actually does.
+> **Historical audit.** Ground-truth findings from a live, logged-in inspection of
+> `chatgpt.com` on 2026-07-09. See the [active plan](./refactor-plan.md) and
+> [current contract log](./phase-0-findings.md); selectors here require revalidation.
 >
 > **Method.** Structural DOM/API probes only (node counts, attribute/class names, HTTP
 > status, content-type distributions). **No conversation text, titles, tokens, or account

@@ -5,3 +5,4 @@ import './markdown.feature.test.js';
 import './txt.feature.test.js';
 import './katex.feature.test.js';
 import './retention.feature.test.js';
+import './live-contract-probe.test.js';
