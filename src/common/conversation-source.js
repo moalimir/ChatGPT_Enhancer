@@ -47,7 +47,16 @@ export function activeBranch(conversation) {
   return path.reverse().filter(Boolean);
 }
 
+function generatedImages(message) {
+  if (message?.author?.role !== 'tool' || message.metadata?.is_visually_hidden_from_conversation) return [];
+  const parts = message.content?.parts;
+  return Array.isArray(parts) ? parts.filter((part) => part?.content_type === 'image_asset_pointer' &&
+    (message.metadata?.image_gen_title || part.metadata?.dalle || part.metadata?.generation)) : [];
+}
+
 function visible(message) {
+  // Generated pictures are visible tool outputs; their tool text and previews aren't transcript content.
+  if (generatedImages(message).length) return true;
   const role = message?.author?.role;
   if (role !== 'user' && role !== 'assistant') return false;
   if (role === 'assistant' && message.end_turn === false) return false;
@@ -64,12 +73,13 @@ export function normalizeMessages(conversation, scope = 'all') {
     throw new Error('Wait for ChatGPT to finish responding before exporting.');
   }
   return branch.filter(visible).filter((message) =>
-    scope === 'all' || message.author.role === 'assistant'
+    scope === 'all' || message.author.role !== 'user'
   ).map((message) => {
     if (message.status === 'in_progress' || message.end_turn === false) {
       throw new Error('Wait for ChatGPT to finish responding before exporting.');
     }
-    const content = message.content || {};
+    const content = message.author.role === 'tool'
+      ? { content_type: 'multimodal_text', parts: generatedImages(message) } : message.content || {};
     const type = content.content_type;
     const images = [];
     let markdown = '';
@@ -93,7 +103,7 @@ export function normalizeMessages(conversation, scope = 'all') {
     }
     return {
       id: message.id || null,
-      role: message.author.role,
+      role: message.author.role === 'tool' ? 'assistant' : message.author.role,
       markdown: cleanCitations(markdown, message.metadata?.content_references).trim(),
       images
     };

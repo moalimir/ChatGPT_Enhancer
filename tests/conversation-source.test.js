@@ -71,6 +71,32 @@ test('API source keeps code, citations, and image placeholders', () => {
   assert.throws(() => normalizeMessages(fixture('streaming-incomplete')), /finish responding/);
 });
 
+test('generated image outputs survive filtering without hidden previews, tool text, or inactive branches', () => {
+  const conversation = fixture('multimodal-image');
+  const image = (id, metadata = { dalle: {} }) => ({ content_type: 'image_asset_pointer',
+    asset_pointer: `sediment://file_${id}`, metadata });
+  const output = { id: 'generated', author: { role: 'tool', name: 'opaque-tool-alias' },
+    status: 'finished_successfully', end_turn: null, channel: 'commentary',
+    content: { content_type: 'multimodal_text', parts: ['PRIVATE TOOL TEXT', image('ONE'), image('TWO'), image('REFERENCE', {})] },
+    metadata: {} };
+  conversation.mapping.generated = { parent: 'a1', message: output };
+  conversation.mapping.preview = { parent: 'generated', message: { ...output, id: 'preview',
+    metadata: { is_visually_hidden_from_conversation: true } } };
+  conversation.mapping.reference = { parent: 'preview', message: { ...output, id: 'reference',
+    content: { content_type: 'multimodal_text', parts: [image('REFERENCE', {})] } } };
+  conversation.mapping.inactive = { parent: 'a1', message: { ...output, id: 'inactive' } };
+  conversation.current_node = 'reference';
+  const messages = normalizeMessages(conversation);
+  assert.deepEqual(messages.map(({ id }) => id), ['u1', 'a1', 'generated']);
+  assert.equal(messages[2].role, 'assistant');
+  assert.deepEqual(messages[2].images, ['sediment://file_ONE', 'sediment://file_TWO']);
+  assert.deepEqual(messages[2].markdown.match(/\uE100IMG\d+\uE101/g), ['\uE100IMG0\uE101', '\uE100IMG1\uE101']);
+  assert.doesNotMatch(messages[2].markdown, /PRIVATE TOOL TEXT/);
+  assert.deepEqual(normalizeMessages(conversation, 'assistant').map(({ id }) => id), ['a1', 'generated']);
+  output.status = 'in_progress';
+  assert.throws(() => normalizeMessages(conversation), /finish responding/);
+});
+
 test('API source resolves visual attachments only during a requested export', async () => {
   const conversation = fixture('multimodal-image');
   global.location = {

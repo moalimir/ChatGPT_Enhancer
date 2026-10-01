@@ -110,8 +110,10 @@ async function load() {
     ]);
     if (request !== loadNumber || !panel || !opened || conversationIdFromUrl() !== routeId) return;
     const parser = new MarkdownIt();
-    messages = result.messages.map((message, index) => ({ id: message.id,
-      title: outlineTitle(parser, message.markdown.replace(/\uE100IMG\d+\uE101/g, '[Image attachment]'), index + 1) }));
+    // Image-only tool outputs have no prose heading or mounted message-unit anchor.
+    messages = result.messages.filter(({ markdown }) => markdown.replace(/\uE100IMG\d+\uE101/g, '').trim())
+      .map((message, index) => ({ id: message.id,
+        title: outlineTitle(parser, message.markdown.replace(/\uE100IMG\d+\uE101/g, '[Image attachment]'), index + 1) }));
     render();
   } catch {
     if (request !== loadNumber || !panel) return;

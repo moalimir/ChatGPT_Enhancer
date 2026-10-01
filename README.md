@@ -14,7 +14,7 @@ A [browser extension](https://chromewebstore.google.com/detail/gpt-enhancer-for-
 - **Themes** – apply handcrafted themes (Midnight, Aurora, Paper, Nebula, Skyblue); the extension only enables themes that match ChatGPT’s current light/dark mode.
 - **Prompt library** – create, edit, and reorder reusable prompts from the popup, and copy them into ChatGPT in one click.
 - **Conversation export** – save the active branch of a signed-in ChatGPT conversation as PDF, DOCX, Markdown, or TXT, including long chats whose older messages are not mounted on the page. Choose all messages or assistant-only. Export uses ChatGPT's private web endpoint and reports an error if that endpoint or a message format changes.
-- **Conversation contents** – open an outline of every assistant reply in the active branch. Click a reply to jump to its start; distant replies are located by their message ID. Drag the header, resize the panel, or collapse it.
+- **Conversation contents** – open an outline of assistant replies with text in the active branch. Click a reply to jump to its start; distant replies are located by their message ID. Drag the header, resize the panel, or collapse it.
 - **Quick export panel** – drag the header to dock the control at either screen edge; its height and edge are saved across visits.
 - **In-app help** – slide-in guide (English/Farsi) that explains every toggle.
 
@@ -32,7 +32,7 @@ A [browser extension](https://chromewebstore.google.com/detail/gpt-enhancer-for-
 Run `npm test`, `npm run lint`, and `npm run build`.
 For visual checks, run `npm exec vite -- --config tests/print.vite.config.js`, then open
 `http://127.0.0.1:4179/tests/print-samples.html?case=mixed` and print it.
-Cases: `en`, `fa`, `mixed`, `fonts`, `table`, `long`, `code`.
+Cases: `en`, `fa`, `mixed`, `fonts`, `table`, `long`, `code`, `images`.
 The samples use the production renderer and PDF styles; all content is synthetic.
 `/tests/control-samples.html` checks the panels against a synthetic 121-reply branch.
 
