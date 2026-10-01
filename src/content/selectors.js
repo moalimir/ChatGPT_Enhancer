@@ -82,6 +82,15 @@ export function getMessageRole(node) {
   return (direct || node?.querySelector?.('[data-message-author-role]')?.getAttribute('data-message-author-role') || '').toLowerCase();
 }
 
+export function getMessageId(node) {
+  if (!(node instanceof Element)) return null;
+  const carrier = node.matches('[data-chatgpt-selection-message-id], [data-message-id]')
+    ? node : node.querySelector('[data-chatgpt-selection-message-id], [data-message-id]');
+  if (carrier) return carrier.getAttribute('data-chatgpt-selection-message-id') || carrier.getAttribute('data-message-id');
+  const ids = node.closest('[data-chatgpt-search-message-ids]')?.getAttribute('data-chatgpt-search-message-ids');
+  return ids?.trim().split(/\s+/)[0] || null;
+}
+
 export function selectKatexNodes(root = document) {
   return { selector: SELECTORS.katex, nodes: query(root, SELECTORS.katex) };
 }

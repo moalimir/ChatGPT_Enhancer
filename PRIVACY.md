@@ -14,12 +14,13 @@ What we do not collect
 
 Network access
 --------------
-When you request an export, the extension reads your ChatGPT session access token from
+When you open Conversation contents or request an export, the extension reads your ChatGPT session access token from
 `chatgpt.com/api/auth/session` and uses it to request the current conversation from
 `chatgpt.com/backend-api/conversation/<id>`. For visual exports with attachments, it may
 also request ChatGPT image download links and fetch those images for embedding. The token
-and conversation response are held in memory for the export only; they are not saved or
-logged by the extension. The extension does not send them to our servers or third parties.
+and conversation response are not saved or logged by the extension. The Contents panel keeps
+short reply previews in memory while the page is open. The extension does not send this data
+to our servers or third parties.
 
 Data stays on your device
 -------------------------

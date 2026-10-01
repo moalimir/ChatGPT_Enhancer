@@ -7,3 +7,4 @@ import './katex.feature.test.js';
 import './retention.feature.test.js';
 import './live-contract-probe.test.js';
 import './conversation-source.test.js';
+import './conversation-ui.test.js';

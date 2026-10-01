@@ -10,8 +10,6 @@ const EXPORT_PROGRESS_EVENT = 'GPT_ENHANCER_EXPORT_PROGRESS';
 const QUICK_ACTION_CLASS = 'gpt-export-quick-action';
 const QUICK_ACTION_MIN_GAP = 12;
 const QUICK_ACTION_DEFAULT_GAP = 20;
-const QUICK_ACTION_BAR_GAP = -36;
-const QUICK_ACTION_VERTICAL_OFFSET = -8;
 const QUICK_ACTION_EXPORT_BUSY_LABEL = 'Exporting...';
 const QUICK_ACTION_EXPORT_IDLE_LABEL = 'Export';
 const BUSY_STATUSES = new Set(['starting', 'loading-content', 'normalizing', 'fonts', 'images', 'generating']);
@@ -54,6 +52,11 @@ let resizeListenerAttached = false;
 let collapsedPreference = null;
 let positionRafId = null;
 let bodyObserver = null;
+let drag = null;
+let suppressCollapseClick = false;
+let snapTimer = null;
+let positionWrite = Promise.resolve();
+let latestLocalPosition = null;
 
 export const QuickActionManager = {
   init(settings) {
@@ -66,9 +69,14 @@ export const QuickActionManager = {
       return;
     }
     const next = { ...currentSettings };
-    ['enableFix', 'exportQuickAction', 'exportFormat', 'exportScope'].forEach((key) => {
+    ['enableFix', 'exportQuickAction', 'exportQuickActionPosition', 'exportFormat', 'exportScope'].forEach((key) => {
       if (Object.prototype.hasOwnProperty.call(changes, key) && changes[key]) {
-        next[key] = changes[key].newValue;
+        const value = changes[key].newValue;
+        if (key === 'exportQuickActionPosition' && latestLocalPosition) {
+          if (value?.side !== latestLocalPosition.side || value?.y !== latestLocalPosition.y) return;
+          latestLocalPosition = null;
+        }
+        next[key] = value;
       }
     });
     currentSettings = next;
@@ -108,7 +116,9 @@ function ensurePanel() {
 
   const header = document.createElement('div');
   header.className = 'gpt-export-qa-header';
-  header.title = 'Quick export';
+  header.title = 'Drag to move; use arrow keys to change edge or height';
+  header.tabIndex = 0;
+  header.setAttribute('aria-label', 'Move quick export with arrow keys');
 
   const title = document.createElement('span');
   title.className = 'gpt-export-qa-title';
@@ -123,6 +133,8 @@ function ensurePanel() {
 
   header.appendChild(title);
   header.appendChild(collapseButton);
+  header.addEventListener('pointerdown', startDrag);
+  header.addEventListener('keydown', handlePositionKeys);
   panel.appendChild(header);
 
   const formatGroup = buildOptionGroup('Format', 'gpt-export-qa-format', FORMAT_OPTIONS, handleFormatChange);
@@ -155,9 +167,13 @@ function ensurePanel() {
 }
 
 function teardown() {
+  stopDrag();
+  if (snapTimer) clearTimeout(snapTimer);
   if (state.collapseButton) {
     state.collapseButton.removeEventListener('click', handleCollapseToggle);
   }
+  state.header?.removeEventListener('pointerdown', startDrag);
+  state.header?.removeEventListener('keydown', handlePositionKeys);
   if (state.panel && state.panel.parentNode) {
     state.panel.parentNode.removeChild(state.panel);
   }
@@ -276,6 +292,10 @@ function setBusyState(isBusy) {
 }
 
 function handleCollapseToggle() {
+  if (suppressCollapseClick) {
+    suppressCollapseClick = false;
+    return;
+  }
   const nextCollapsed = !state.isCollapsed;
   applyCollapsedState(nextCollapsed);
   persistCollapsedPreference(nextCollapsed);
@@ -363,7 +383,13 @@ function schedulePositionUpdate() {
 }
 
 function updatePanelPosition() {
-  if (!state.panel) {
+  if (!state.panel || drag) {
+    return;
+  }
+  const dock = currentSettings.exportQuickActionPosition;
+  if (dock && (dock.side === 'left' || dock.side === 'right') && Number.isFinite(dock.y)) {
+    disconnectBodyObserver();
+    positionDocked(dock);
     return;
   }
   const anchor = resolveComposerAnchor();
@@ -379,11 +405,105 @@ function updatePanelPosition() {
     positionFallback(panelRect);
     return;
   }
-  const leftTarget = anchorRect.right + QUICK_ACTION_BAR_GAP;
-  const topTarget = anchorRect.top + (anchorRect.height - panelRect.height) / 2 + QUICK_ACTION_VERTICAL_OFFSET;
+  const leftTarget = window.innerWidth - panelRect.width - QUICK_ACTION_MIN_GAP;
+  const topTarget = anchorRect.top + (anchorRect.height - panelRect.height) / 2;
   const left = clamp(leftTarget, QUICK_ACTION_MIN_GAP, window.innerWidth - panelRect.width - QUICK_ACTION_MIN_GAP);
   const top = clamp(topTarget, QUICK_ACTION_MIN_GAP, window.innerHeight - panelRect.height - QUICK_ACTION_MIN_GAP);
   setPanelPosition(left, top);
+}
+
+function positionDocked(dock) {
+  const rect = state.panel.getBoundingClientRect();
+  const travel = Math.max(0, window.innerHeight - rect.height - 2 * QUICK_ACTION_MIN_GAP);
+  const left = dock.side === 'left' ? QUICK_ACTION_MIN_GAP : window.innerWidth - rect.width - QUICK_ACTION_MIN_GAP;
+  setPanelPosition(
+    clamp(left, QUICK_ACTION_MIN_GAP, window.innerWidth - rect.width - QUICK_ACTION_MIN_GAP),
+    QUICK_ACTION_MIN_GAP + clamp(dock.y, 0, 1) * travel
+  );
+}
+
+function startDrag(event) {
+  if (event.button !== 0 || !state.panel || (!state.isCollapsed && event.target === state.collapseButton)) return;
+  const rect = state.panel.getBoundingClientRect();
+  drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top, moved: false };
+  window.addEventListener('pointermove', moveDrag);
+  window.addEventListener('pointerup', finishDrag);
+  window.addEventListener('pointercancel', cancelDrag);
+  window.addEventListener('blur', cancelDrag);
+}
+
+function moveDrag(event) {
+  if (!drag || event.pointerId !== drag.pointerId || !state.panel) return;
+  const dx = event.clientX - drag.x;
+  const dy = event.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+  drag.moved = true;
+  try { state.header?.setPointerCapture?.(event.pointerId); } catch { /* pointer already ended */ }
+  state.panel.classList.add('is-dragging');
+  const rect = state.panel.getBoundingClientRect();
+  setPanelPosition(
+    clamp(drag.left + dx, QUICK_ACTION_MIN_GAP, window.innerWidth - rect.width - QUICK_ACTION_MIN_GAP),
+    clamp(drag.top + dy, QUICK_ACTION_MIN_GAP, window.innerHeight - rect.height - QUICK_ACTION_MIN_GAP)
+  );
+}
+
+function finishDrag(event) {
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  const moved = drag.moved;
+  stopDrag();
+  if (!moved || !state.panel) return;
+  suppressCollapseClick = true;
+  setTimeout(() => { suppressCollapseClick = false; }, 300);
+  const rect = state.panel.getBoundingClientRect();
+  const travel = Math.max(0, window.innerHeight - rect.height - 2 * QUICK_ACTION_MIN_GAP);
+  const position = {
+    side: rect.left + rect.width / 2 < window.innerWidth / 2 ? 'left' : 'right',
+    y: travel ? clamp((rect.top - QUICK_ACTION_MIN_GAP) / travel, 0, 1) : 0
+  };
+  dockAndSave(position);
+}
+
+function handlePositionKeys(event) {
+  if (event.target !== state.header || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+  event.preventDefault();
+  const rect = state.panel.getBoundingClientRect();
+  const travel = Math.max(0, window.innerHeight - rect.height - 2 * QUICK_ACTION_MIN_GAP);
+  const current = currentSettings.exportQuickActionPosition || {
+    side: rect.left + rect.width / 2 < window.innerWidth / 2 ? 'left' : 'right',
+    y: travel ? (rect.top - QUICK_ACTION_MIN_GAP) / travel : 0
+  };
+  dockAndSave({
+    side: event.key === 'ArrowLeft' ? 'left' : event.key === 'ArrowRight' ? 'right' : current.side,
+    y: clamp(current.y + (event.key === 'ArrowUp' ? -40 : event.key === 'ArrowDown' ? 40 : 0) / (travel || 1), 0, 1)
+  });
+}
+
+function dockAndSave(position) {
+  currentSettings.exportQuickActionPosition = position;
+  latestLocalPosition = position;
+  state.panel.classList.add('is-snapping');
+  positionDocked(position);
+  if (snapTimer) clearTimeout(snapTimer);
+  snapTimer = setTimeout(() => state.panel?.classList.remove('is-snapping'), 220);
+  disconnectBodyObserver();
+  positionWrite = positionWrite.then(() => saveSettings({ exportQuickActionPosition: position })).catch(() => {});
+}
+
+function cancelDrag() {
+  stopDrag();
+  schedulePositionUpdate();
+}
+
+function stopDrag() {
+  if (drag && state.header?.hasPointerCapture?.(drag.pointerId)) {
+    try { state.header.releasePointerCapture(drag.pointerId); } catch { /* pointer already ended */ }
+  }
+  drag = null;
+  state.panel?.classList.remove('is-dragging');
+  window.removeEventListener('pointermove', moveDrag);
+  window.removeEventListener('pointerup', finishDrag);
+  window.removeEventListener('pointercancel', cancelDrag);
+  window.removeEventListener('blur', cancelDrag);
 }
 
 function positionFallback(panelRect) {
@@ -450,7 +570,7 @@ function clamp(value, min, max) {
   if (!Number.isFinite(value)) {
     return min;
   }
-  return Math.min(Math.max(value, min), max);
+  return Math.min(Math.max(value, min), Math.max(min, max));
 }
 
 function normalizeExportFormat(format) {

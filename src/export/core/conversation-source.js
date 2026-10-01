@@ -1,5 +1,5 @@
-// ChatGPT's private endpoint is used only while the user exports a conversation.
-// Credentials and the response stay in this call; neither is cached or logged.
+// ChatGPT's private endpoint serves requested exports and the opened contents panel.
+// Credentials stay in this call; neither token nor response is persisted or logged.
 const CITATION = /\uE200[^\uE201]*\uE201/g;
 
 export function conversationIdFromUrl(href = location.href) {

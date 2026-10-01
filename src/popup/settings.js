@@ -207,7 +207,8 @@ export function attachSettingsListeners(controls, deps) {
     fixKatex: controls.fixKatex,
     fixCode: controls.fixCode,
     copyKatex: controls.copyKatex,
-    exportQuickAction: controls.exportQuickAction
+    exportQuickAction: controls.exportQuickAction,
+    tableOfContents: controls.tableOfContents
   }).forEach(([key, input]) => {
     if (!input) {
       return;
@@ -359,6 +360,9 @@ export function applySettingsToUI(controls, settings, deps) {
   if (controls.exportQuickAction) {
     controls.exportQuickAction.checked = nextSettings.exportQuickAction;
   }
+  if (controls.tableOfContents) {
+    controls.tableOfContents.checked = nextSettings.tableOfContents;
+  }
   if (controls.fontToggle) {
     controls.fontToggle.checked = nextSettings.fontsEnabled;
     controls.fontToggle.disabled = !nextSettings.enableFix;
@@ -388,7 +392,8 @@ export function applySettingsToUI(controls, settings, deps) {
     controls.fixKatex,
     controls.fixCode,
     controls.copyKatex,
-    controls.exportQuickAction
+    controls.exportQuickAction,
+    controls.tableOfContents
   ].forEach((input) => {
     if (!input) {
       return;

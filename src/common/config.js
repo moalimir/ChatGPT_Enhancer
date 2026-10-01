@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS = {
   exportScope: 'all',
   exportQuickAction: false,
   exportQuickActionPosition: null,
+  tableOfContents: true,
   theme: 'original',
   fontsEnabled: false,
   fontEnglish: 'inter',

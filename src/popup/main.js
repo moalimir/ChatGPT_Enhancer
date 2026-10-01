@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
   controls.fixCode = document.getElementById('toggle-code');
   controls.copyKatex = document.getElementById('toggle-copy');
   controls.exportQuickAction = document.getElementById('toggle-export-quick-action');
+  controls.tableOfContents = document.getElementById('toggle-toc');
   controls.refreshBtn = document.getElementById('refresh-btn');
   controls.donateBtn = document.getElementById('donate-btn');
   controls.themeCards = Array.from(document.querySelectorAll('.theme-card'));

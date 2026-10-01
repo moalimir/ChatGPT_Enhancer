@@ -15,6 +15,7 @@ import { FontManager } from './fonts/index.js';
 import { KatexManager } from './fixers/katex.js';
 import { getMessageSelector } from './selectors.js';
 import { QuickActionManager } from './quick-actions/index.js';
+import { TocManager } from './toc.js';
 
 const root = document.documentElement;
 const EXPORT_PROGRESS_EVENT = 'GPT_ENHANCER_EXPORT_PROGRESS';
@@ -70,6 +71,7 @@ function initializeManagers(settings) {
   FontManager.init(settings);
   KatexManager.init(settings);
   QuickActionManager.init(settings);
+  TocManager.init(settings);
   syncFixerObserver();
   scheduleObserverRelease();
   attachExportProgressListener();
@@ -117,6 +119,7 @@ function handleStorageChanges(changes, areaName) {
   FontManager.update(picked);
   KatexManager.update(picked);
   QuickActionManager.update(picked);
+  TocManager.update(picked);
   syncFixerObserver();
   scheduleObserverRelease();
 }
@@ -137,6 +140,7 @@ function extractRelevantChanges(changes) {
     'copyKatex',
     'exportQuickAction',
     'exportQuickActionPosition',
+    'tableOfContents',
     'exportFormat',
     'exportScope'
   ];
@@ -401,6 +405,7 @@ function scheduleFixerRootCheck() {
     const nextTarget = getConversationRoot();
     if (nextTarget && nextTarget !== fixerObserverTarget) {
       attachFixerObserver();
+      TocManager.syncRoute();
     }
   }, 120);
 }
@@ -423,6 +428,7 @@ function handleFixerMutations(mutations) {
     DirectionFixer.handleMutations(mutations);
   }
   KatexManager.handleMutations(mutations);
+  TocManager.handleMutations(mutations);
 }
 
 function syncFixerObserver() {

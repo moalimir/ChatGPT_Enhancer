@@ -12,6 +12,11 @@ const RESET_VALUES = {
   'unicode-bidi': 'isolate',
   'text-align': 'left'
 };
+const TEXT_BLOCKS = '[data-markdown-text-style="assistant-message"] :is(p,h1,h2,h3,h4,h5,h6,li,blockquote,td,th), [data-user-message-bubble] [data-search-result-target]';
+const EXCLUDED_TEXT = 'code, pre, .katex, [data-math-source], [data-markdown-copy="code-block"], [data-markdown-copy="exclude"], .sr-only';
+const PERSIAN = /[\u0621-\u064A\u066E-\u06D3\u06FA-\u06FF]/g;
+const FIRST_PERSIAN = /^[\u0621-\u064A\u066E-\u06D3\u06FA-\u06FF]$/;
+const LATIN = /[A-Za-z]/g;
 
 let currentSettings = { ...DEFAULT_SETTINGS };
 
@@ -28,6 +33,7 @@ export function applyDirectionFixes(scope = getConversationRoot()) {
   if (currentSettings.fixCode && codeNodes.length) {
     applyStyles(codeNodes, RESET_VALUES);
   }
+  scope.querySelectorAll(TEXT_BLOCKS).forEach(alignTextBlock);
 }
 
 export function clearDirectionFixes(scope = getConversationRoot()) {
@@ -35,6 +41,9 @@ export function clearDirectionFixes(scope = getConversationRoot()) {
     return;
   }
   clearStyles(selectCodeNodes(scope).nodes);
+  scope.querySelectorAll('.gpt-enhancer-text-rtl, .gpt-enhancer-text-ltr').forEach((node) => {
+    node.classList.remove('gpt-enhancer-text-rtl', 'gpt-enhancer-text-ltr');
+  });
 }
 
 export function init(settings) {
@@ -110,19 +119,55 @@ function clearStyles(elements) {
 }
 
 function handleMutations(mutations) {
-  if (!isEnabled() || !currentSettings.fixCode) {
-    return;
-  }
+  if (!isEnabled()) return;
   const added = new Set();
+  const blocks = new Set();
   mutations.forEach((mutation) => {
+    if (mutation.type === 'characterData') {
+      const block = mutation.target.parentElement?.closest(TEXT_BLOCKS);
+      if (block) addBlockAndAncestors(block, blocks);
+      return;
+    }
     if (mutation.type !== 'childList') return;
+    const parentBlock = mutation.target.closest?.(TEXT_BLOCKS);
+    if (parentBlock) addBlockAndAncestors(parentBlock, blocks);
     Array.from(mutation.addedNodes).forEach((node) => {
       if (!(node instanceof Element)) return;
-      if (node.matches(SELECTORS.code)) added.add(node);
-      node.querySelectorAll(SELECTORS.code).forEach((code) => added.add(code));
+      if (currentSettings.fixCode) {
+        if (node.matches(SELECTORS.code)) added.add(node);
+        node.querySelectorAll(SELECTORS.code).forEach((code) => added.add(code));
+      }
+      if (node.matches(TEXT_BLOCKS)) blocks.add(node);
+      node.querySelectorAll(TEXT_BLOCKS).forEach((block) => blocks.add(block));
     });
   });
-  applyStyles(added, RESET_VALUES);
+  if (currentSettings.fixCode) applyStyles(added, RESET_VALUES);
+  blocks.forEach(alignTextBlock);
+}
+
+function addBlockAndAncestors(block, blocks) {
+  for (let node = block; node; node = node.parentElement) {
+    if (node.matches(TEXT_BLOCKS)) blocks.add(node);
+  }
+}
+
+function alignTextBlock(block) {
+  if (!(block instanceof HTMLElement) || block.closest(EXCLUDED_TEXT)) return;
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  let persian = 0;
+  let latin = 0;
+  let first = '';
+  while (walker.nextNode()) {
+    const textNode = walker.currentNode;
+    if (textNode.parentElement?.closest(EXCLUDED_TEXT)) continue;
+    const text = textNode.textContent || '';
+    persian += (text.match(PERSIAN) || []).length;
+    latin += (text.match(LATIN) || []).length;
+    if (!first) first = text.match(/[\u0621-\u064A\u066E-\u06D3\u06FA-\u06FFA-Za-z]/)?.[0] || '';
+  }
+  const rtl = persian > 0 && (persian >= latin || FIRST_PERSIAN.test(first));
+  block.classList.toggle('gpt-enhancer-text-rtl', rtl);
+  block.classList.toggle('gpt-enhancer-text-ltr', !rtl && latin > 0);
 }
 
 function syncRootClasses() {
